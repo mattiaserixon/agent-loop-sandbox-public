@@ -8,6 +8,9 @@ gate = "python3 -m unittest discover -s tests -q"
 gate_files = [".agent-loop.toml", ".github/**", "loopctl/**"]
 critical = [".agent-loop.toml", ".github/workflows/**", "loopctl/**"]
 
+[scope]
+excluded_labels = ["agent-loop-control"]
+
 [merge]
 auto = false
 
