@@ -1,0 +1,23 @@
+[project]
+repo = "mattiaserixon/agent-loop-sandbox-public"
+state = "mattiaserixon/agent-loop-sandbox-private"
+main = "main"
+gate = "python3 -m unittest discover -s tests -q"
+
+[risk]
+gate_files = [".agent-loop.toml", ".github/**", "loopctl/**"]
+critical = [".agent-loop.toml", ".github/workflows/**", "loopctl/**"]
+
+[merge]
+auto = false
+
+[schedule]
+night = "run"
+
+[budget]
+week = 0.05
+window = 0.15
+
+[capacity]
+max_sessions = 2
+
