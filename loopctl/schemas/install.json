@@ -1,0 +1,103 @@
+{
+ "additionalProperties": false,
+ "description": "install.json in the state repo (M0.13): what the controller's self-check and the commands' trust rules compare against. Written by `loopctl install write`; installed_at is written by loopctl.",
+ "properties": {
+  "app_login": {
+   "anyOf": [
+    {
+     "pattern": "^[a-z0-9][a-z0-9-]{0,38}\\[bot\\]$",
+     "type": "string"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "description": "the loop App's commit author, <app-slug>[bot]; null until the App exists (no confirmation is trusted)"
+  },
+  "control_issue": {
+   "description": "the target's control issue number",
+   "minimum": 1,
+   "type": "integer"
+  },
+  "controller_environment": {
+   "pattern": "^env_[A-Za-z0-9]{8,64}$",
+   "type": "string"
+  },
+  "engine_ref": {
+   "description": "the engine commit the setup scripts pin",
+   "pattern": "^[0-9a-f]{40}$",
+   "type": "string"
+  },
+  "engine_repo": {
+   "description": "the repository the setup scripts install loopctl from (attached to both environments)",
+   "pattern": "^[A-Za-z0-9_.-]{1,39}/[A-Za-z0-9_.-]{1,100}$",
+   "type": "string"
+  },
+  "installed_at": {
+   "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$",
+   "type": "string",
+   "x-stamped": true
+  },
+  "page": {
+   "anyOf": [
+    {
+     "pattern": "^[A-Za-z0-9_-]{8,64}$",
+     "type": "string"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "description": "the claude.ai page's artifact slug; null: no page (the control issue is the channel)"
+  },
+  "version": {
+   "const": 1
+  },
+  "worker_environment": {
+   "pattern": "^env_[A-Za-z0-9]{8,64}$",
+   "type": "string"
+  },
+  "workflow_engine": {
+   "additionalProperties": false,
+   "description": "where agent-loop.yml gets the engine: engine_repo (production, the App installed on it) or a copy vendored into the target (sandbox: the App is installed on the sandbox repositories only)",
+   "properties": {
+    "engine_ref": {
+     "pattern": "^[0-9a-f]{40}$",
+     "type": "string"
+    },
+    "path": {
+     "const": "loopctl"
+    },
+    "repo": {
+     "pattern": "^[A-Za-z0-9_.-]{1,39}/[A-Za-z0-9_.-]{1,100}$",
+     "type": "string"
+    },
+    "source": {
+     "enum": [
+      "engine_repo",
+      "vendored"
+     ]
+    }
+   },
+   "required": [
+    "source",
+    "repo",
+    "engine_ref"
+   ],
+   "type": "object"
+  }
+ },
+ "required": [
+  "version",
+  "engine_repo",
+  "engine_ref",
+  "controller_environment",
+  "worker_environment",
+  "control_issue",
+  "app_login",
+  "page",
+  "workflow_engine",
+  "installed_at"
+ ],
+ "type": "object"
+}

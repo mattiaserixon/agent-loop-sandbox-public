@@ -1,0 +1,225 @@
+# agent-loop: the verify workflow (agent-loop v2, phase2-design §10.2-10.4, §4.5, §12.3).
+#
+# Installed as .github/workflows/agent-loop.yml in the target repository by the agent-loop setup, rendered from the
+# engine's template (loopctl/templates/workflow/agent-loop.yml, `loopctl.verify.render`). Do not edit it by hand.
+#
+# - It never runs on a push, never checks out or runs a PR's code, and runs no tests. Every trigger runs the
+#   definition on main: workflow_dispatch only from main, pull_request_target only for PRs into main, issue_comment
+#   always from the default branch.
+# - The loop App's key is an Actions secret used only by the token step; the token is used only by the verify and
+#   merge steps of each job. Nothing else here has any permission.
+# - Every decision is made by the engine (`loopctl verify`, at the pinned sha below) from facts gathered with GitHub
+#   reads; the shell only gathers and carries out the plan.
+#
+# Repository variable: AGENT_LOOP_APP_ID. Repository secret: AGENT_LOOP_APP_KEY (the App's private key).
+name: agent-loop
+
+on:
+  workflow_dispatch:
+    inputs:
+      prs:
+        description: "PR numbers to verify and merge, comma-separated"
+        required: true
+        type: string
+  pull_request_target:
+    types: [labeled]
+    branches: [__MAIN__]
+  issue_comment:
+    types: [created]
+
+permissions: {}
+
+env:
+  TARGET_REPO: ${{ github.repository }}
+  STATE_REPO: __STATE_REPO__
+  ENGINE_REPO: __ENGINE_REPO__
+  ENGINE_SHA: __ENGINE_SHA__
+  OWNER_LOGIN: __OWNER_LOGIN__
+  CONTROL_ISSUE: "__CONTROL_ISSUE__"
+  MAIN: __MAIN__
+
+jobs:
+  merge:
+    name: verify and merge
+    # A merge request: a dispatch on main (from the gate worker or the controller), or the merge-request label on a
+    # PR into main. Other label events skip this job, which costs no minutes.
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/__MAIN__') ||
+      (github.event_name == 'pull_request_target' && github.event.label.name == 'merge-request' &&
+      github.event.pull_request.base.ref == '__MAIN__')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Mint the loop App's installation token
+        id: token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ vars.AGENT_LOOP_APP_ID }}
+          private-key: ${{ secrets.AGENT_LOOP_APP_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: __APP_REPOS__
+          permission-contents: write
+          permission-pull-requests: write
+          permission-statuses: write
+          permission-issues: read
+
+      - name: Verify (STOP, main's colour, the store, preconditions 1, 2, 4, 6)
+        id: verify
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          PRS_INPUT: ${{ inputs.prs }}
+          LABELED_PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/agent-loop"
+          rm -rf "$work"
+          mkdir -p "$work/facts/prs" "$work/facts/events" "$work/facts/commits"
+          cd "$work"
+          gh auth setup-git
+          # The engine at its pinned sha: the verify code is the engine's, never the target's or a PR's.
+          git init -q engine
+          git -C engine fetch -q --depth 1 "https://github.com/$ENGINE_REPO" "$ENGINE_SHA"
+          git -C engine checkout -q --detach FETCH_HEAD
+          test "$(git -C engine rev-parse HEAD)" = "$ENGINE_SHA"
+          loopctl() { python3 -I "$work/engine/loopctl/bin/loopctl" "$@"; }
+          # The store: state.json, the event files, gate results, STOP.
+          git clone -q --depth 1 "https://github.com/$STATE_REPO" facts/state
+          # main of the target: its .agent-loop.toml and gate scripts are read, nothing of it runs.
+          git clone -q --depth 1 --filter=blob:none --no-checkout --branch "$MAIN" "https://github.com/$TARGET_REPO" facts/main
+          git -C facts/main rev-parse HEAD > facts/main_sha
+          from_main() {
+            if git -C facts/main cat-file -e "HEAD:$1" 2> /dev/null; then git -C facts/main checkout -q HEAD -- "$1"; fi
+          }
+          from_main .agent-loop.toml
+          scripts=$(loopctl verify scripts --project facts/main/.agent-loop.toml)
+          for path in $scripts; do from_main "$path"; done
+          # The PRs asked for: their heads, label events and head commits (API metadata only).
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then asked="$PRS_INPUT"; else asked="$LABELED_PR"; fi
+          numbers=$(loopctl verify prs --project facts/main/.agent-loop.toml --prs "$asked")
+          for n in $numbers; do
+            gh api "repos/$TARGET_REPO/pulls/$n" > "facts/prs/$n.json"
+            gh api --paginate "repos/$TARGET_REPO/issues/$n/events" --jq '.[]' > "facts/events/$n.jsonl"
+            sha=$(jq -r .head.sha "facts/prs/$n.json")
+            gh api "repos/$TARGET_REPO/commits/$sha" > "facts/commits/$sha.json"
+          done
+          extra=$(loopctl verify commits --facts facts --prs "$asked")
+          for sha in $extra; do gh api "repos/$TARGET_REPO/commits/$sha" > "facts/commits/$sha.json"; done
+          loopctl verify merge --facts facts --prs "$asked" --event "$GITHUB_EVENT_NAME" --owner "$OWNER_LOGIN" > plan.json
+          jq -r '.report[]' plan.json | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Merge (status on H, then squash with sha H)
+        id: merge
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/agent-loop"
+          run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          post() {
+            gh api -X POST "repos/$TARGET_REPO/statuses/$1" -f state="$2" -f context=agent-loop/verify \
+              -f description="$3" -f target_url="$run_url" > /dev/null
+          }
+          jq -c '.statuses[]' plan.json | while read -r s; do
+            post "$(jq -r .sha <<< "$s")" "$(jq -r .state <<< "$s")" "$(jq -r .description <<< "$s")"
+          done
+          jq -c '.merges[]' plan.json | while read -r m; do
+            pr=$(jq -r .pr <<< "$m")
+            sha=$(jq -r .sha <<< "$m")
+            now=$(gh api "repos/$TARGET_REPO/commits/$MAIN" --jq .sha)
+            if [ "$now" != "$(jq -r .main <<< "$m")" ]; then
+              post "$sha" failure "main moved before the merge: gate again on the new main"
+              echo "#$pr: not merged, main moved" | tee -a "$GITHUB_STEP_SUMMARY"
+              continue
+            fi
+            post "$sha" success "$(jq -r .description <<< "$m")"
+            gh api -X PUT "repos/$TARGET_REPO/pulls/$pr/merge" -f merge_method=squash -f sha="$sha" > /dev/null
+            echo "#$pr: merged $sha" | tee -a "$GITHUB_STEP_SUMMARY"
+          done
+
+  control:
+    name: control issue command
+    # /loop pause|stop|confirm|refuse on the pinned control issue, from the owner acting in GitHub itself (no app).
+    if: >-
+      github.event_name == 'issue_comment' && github.event.issue.number == __CONTROL_ISSUE__ &&
+      !github.event.issue.pull_request && startsWith(github.event.comment.body, '/loop ') &&
+      github.event.comment.user.login == '__OWNER_LOGIN__' && !github.event.comment.performed_via_github_app
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Mint the loop App's installation token
+        id: token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ vars.AGENT_LOOP_APP_ID }}
+          private-key: ${{ secrets.AGENT_LOOP_APP_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: __APP_REPOS_CONTROL__
+          permission-contents: write
+
+      - name: Verify the command (owner, no app, command and nonce in the store)
+        id: verify
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          APP_SLUG: ${{ steps.token.outputs.app-slug }}
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/agent-loop"
+          rm -rf "$work"
+          mkdir -p "$work"
+          cd "$work"
+          gh auth setup-git
+          git init -q engine
+          git -C engine fetch -q --depth 1 "https://github.com/$ENGINE_REPO" "$ENGINE_SHA"
+          git -C engine checkout -q --detach FETCH_HEAD
+          test "$(git -C engine rev-parse HEAD)" = "$ENGINE_SHA"
+          loopctl() { python3 -I "$work/engine/loopctl/bin/loopctl" "$@"; }
+          git clone -q --depth 1 "https://github.com/$STATE_REPO" state
+          loopctl verify control --event-file "$GITHUB_EVENT_PATH" --state-dir state --owner "$OWNER_LOGIN" \
+            --control-issue "$CONTROL_ISSUE" --app-slug "$APP_SLUG" > control.json
+          jq -r '.report[]' control.json | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Merge it into the state repo (confirmation file, STOP)
+        id: merge
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/agent-loop"
+          cd "$work"
+          loopctl() { python3 -I "$work/engine/loopctl/bin/loopctl" "$@"; }
+          action=$(jq -r .action control.json)
+          if [ "$action" = none ]; then exit 0; fi
+          url=$(jq -r '.comment_url // .confirmation.doc.comment_url // ""' control.json)
+          if jq -e .confirmation control.json > /dev/null; then
+            path=$(jq -r .confirmation.path control.json)
+            jq .confirmation.doc control.json > confirmation.json
+            # No sha: GitHub refuses if the file exists (a confirmation is written once).
+            gh api -X PUT "repos/$STATE_REPO/contents/$path" -f message="$path: $action by $OWNER_LOGIN ($url)" \
+              -f content="$(base64 -w0 confirmation.json)" > /dev/null
+            echo "wrote $path" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ "$action" = stop ] || jq -e .resume control.json > /dev/null; then
+            for attempt in 1 2 3 4 5; do
+              if gh api "repos/$STATE_REPO/contents/STOP" > stop.json 2> err.txt; then
+                sha=$(jq -r .sha stop.json)
+                jq -r .content stop.json | base64 -d > STOP.now
+              elif grep -q "HTTP 404" err.txt; then
+                sha=""
+                : > STOP.now
+              else
+                cat err.txt >&2
+                exit 1
+              fi
+              loopctl verify stop-edit --control control.json --stop STOP.now > STOP.new
+              if cmp -s STOP.now STOP.new; then echo "STOP already as wanted" | tee -a "$GITHUB_STEP_SUMMARY"; break; fi
+              args=(-X PUT "repos/$STATE_REPO/contents/STOP" -f message="STOP: $action by $OWNER_LOGIN ($url)"
+                    -f content="$(base64 -w0 STOP.new)")
+              if [ -n "$sha" ]; then args+=(-f sha="$sha"); fi
+              if gh api "${args[@]}" > /dev/null 2> err.txt; then echo "STOP written" | tee -a "$GITHUB_STEP_SUMMARY"; break; fi
+              grep -qE "HTTP (409|422)" err.txt || { cat err.txt >&2; exit 1; }
+              if [ "$attempt" = 5 ]; then echo "STOP kept changing under this run" >&2; exit 1; fi
+              sleep $((attempt * 2))
+            done
+          fi

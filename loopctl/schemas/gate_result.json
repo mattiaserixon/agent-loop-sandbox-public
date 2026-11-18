@@ -1,0 +1,70 @@
+{
+ "additionalProperties": false,
+ "description": "gate/<head>.json in the state repo (phase2-design §9.4). finished_at is written by loopctl.",
+ "properties": {
+  "base": {
+   "pattern": "^[0-9a-f]{40}$",
+   "type": "string"
+  },
+  "command": {
+   "description": "the gate command run (from main's .agent-loop.toml)",
+   "maxLength": 500,
+   "type": "string"
+  },
+  "finished_at": {
+   "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$",
+   "type": "string",
+   "x-stamped": true
+  },
+  "gate_command_sha256": {
+   "pattern": "^[0-9a-f]{64}$",
+   "type": "string"
+  },
+  "head": {
+   "pattern": "^[0-9a-f]{40}$",
+   "type": "string"
+  },
+  "log_sha256": {
+   "pattern": "^[0-9a-f]{64}$",
+   "type": "string"
+  },
+  "result": {
+   "enum": [
+    "pass",
+    "fail"
+   ]
+  },
+  "session": {
+   "anyOf": [
+    {
+     "pattern": "^session_[A-Za-z0-9]{8,64}$",
+     "type": "string"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "description": "the gate worker's session when the controller has bound it, else null"
+  },
+  "tested": {
+   "pattern": "^[0-9a-f]{40}$",
+   "type": "string"
+  },
+  "tested_tree": {
+   "description": "the tree of T (H squashed onto base): main's tree after the merge must equal it (I3)",
+   "pattern": "^[0-9a-f]{40}$",
+   "type": "string"
+  }
+ },
+ "required": [
+  "base",
+  "finished_at",
+  "gate_command_sha256",
+  "head",
+  "log_sha256",
+  "result",
+  "session",
+  "tested"
+ ],
+ "type": "object"
+}

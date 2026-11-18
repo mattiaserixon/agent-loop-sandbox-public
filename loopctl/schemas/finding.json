@@ -1,0 +1,56 @@
+{
+ "additionalProperties": false,
+ "description": "One review finding (phase2-design §9.2). Its route (blocking, issue, note) is computed by code.",
+ "properties": {
+  "id": {
+   "pattern": "^f-[0-9A-HJKMNP-TV-Z]{26}$",
+   "type": "string"
+  },
+  "introduced": {
+   "enum": [
+    "introduced",
+    "preexisting",
+    "regression"
+   ]
+  },
+  "line": {
+   "minimum": 1,
+   "type": [
+    "integer",
+    "null"
+   ]
+  },
+  "path": {
+   "maxLength": 300,
+   "minLength": 1,
+   "type": "string"
+  },
+  "repro": {
+   "maxLength": 2000,
+   "type": "string"
+  },
+  "severity": {
+   "enum": [
+    "critical",
+    "high",
+    "medium",
+    "low"
+   ]
+  },
+  "summary": {
+   "maxLength": 300,
+   "minLength": 1,
+   "type": "string"
+  }
+ },
+ "required": [
+  "id",
+  "introduced",
+  "line",
+  "path",
+  "repro",
+  "severity",
+  "summary"
+ ],
+ "type": "object"
+}

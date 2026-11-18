@@ -1,0 +1,1412 @@
+{
+ "description": "Events: immutable files events/YYYY/MM/DD/<ulid>-<writer>.json (phase2-design §5.1). id and at are written by loopctl.",
+ "envelope": {
+  "additionalProperties": false,
+  "properties": {
+   "at": {
+    "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$",
+    "type": "string",
+    "x-stamped": true
+   },
+   "cid": {
+    "pattern": "^[a-z]+-[0-9a-f]{1,12}#[0-9]{1,4}$|^controller$",
+    "type": "string"
+   },
+   "claimant_sha256": {
+    "anyOf": [
+     {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+     },
+     {
+      "type": "null"
+     }
+    ],
+    "description": "sha256 of the session that claimed the lease with its first call (decision record 0029, loopctl/claim.py)"
+   },
+   "epoch": {
+    "minimum": 1,
+    "type": [
+     "integer",
+     "null"
+    ]
+   },
+   "id": {
+    "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$",
+    "type": "string",
+    "x-stamped": true
+   },
+   "lease_token": {
+    "anyOf": [
+     {
+      "pattern": "^[0-9a-f]{32}$",
+      "type": "string"
+     },
+     {
+      "type": "null"
+     }
+    ],
+    "description": "the unit's lease token (decision record 0029), presented by a worker; checked against the lease's sha256"
+   },
+   "payload": {
+    "type": "object"
+   },
+   "type": {
+    "enum": [
+     "approval.recorded",
+     "command.applied",
+     "command.received",
+     "command.rejected",
+     "controller.alert",
+     "controller.lease",
+     "cost.observed",
+     "event.restamped",
+     "finding.fixed",
+     "finding.reopened",
+     "finding.waived",
+     "fix.pushed",
+     "gate.failed",
+     "gate.passed",
+     "issue.seen",
+     "lease.bound",
+     "lease.expired",
+     "lease.granted",
+     "lease.released",
+     "lease.renewed",
+     "limit.observed",
+     "main.checked",
+     "main.moved",
+     "merge.audited",
+     "merge.done",
+     "merge.requested",
+     "pr.head",
+     "pr.risk",
+     "pr.seen",
+     "question.answered",
+     "question.opened",
+     "reconcile.due",
+     "reconcile.reported",
+     "revert.due",
+     "revert.pushed",
+     "review.submitted",
+     "stop.seen",
+     "tick.done",
+     "triage.done",
+     "unit.closed"
+    ]
+   },
+   "unit": {
+    "anyOf": [
+     {
+      "pattern": "^(issue|pr|scan|build|reconcile)-[0-9]{1,8}$|^(check|revert)-[0-9a-f]{12}$",
+      "type": "string"
+     },
+     {
+      "type": "null"
+     }
+    ]
+   },
+   "writer": {
+    "pattern": "^(controller|worker:(fix|review|gate|triage|scan|build|reconcile|check|revert)|owner|workflow)$",
+    "type": "string"
+   }
+  },
+  "required": [
+   "at",
+   "cid",
+   "epoch",
+   "id",
+   "payload",
+   "type",
+   "unit",
+   "writer"
+  ],
+  "type": "object"
+ },
+ "payloads": {
+  "approval.recorded": {
+   "additionalProperties": false,
+   "description": "an owner approval of head, from an App-authored verified commit (§10.4, M0.7)",
+   "properties": {
+    "confirmation": {
+     "pattern": "^[0-9a-f]{40}$",
+     "type": "string"
+    },
+    "head": {
+     "pattern": "^[0-9a-f]{40}$",
+     "type": "string"
+    }
+   },
+   "required": [
+    "confirmation",
+    "head"
+   ],
+   "type": "object"
+  },
+  "command.applied": {
+   "additionalProperties": false,
+   "properties": {
+    "command_id": {
+     "type": "string"
+    },
+    "config_hash_after": {
+     "pattern": "^[0-9a-f]{64}$",
+     "type": "string"
+    },
+    "config_hash_before": {
+     "pattern": "^[0-9a-f]{64}$",
+     "type": "string"
+    },
+    "verdict": {
+     "enum": [
+      "in_effect",
+      "applied_later_changed",
+      "applied_differently",
+      "awaiting_confirmation",
+      "replaced_before_confirmation"
+     ]
+    }
+   },
+   "required": [
+    "command_id",
+    "config_hash_after",
+    "config_hash_before",
+    "verdict"
+   ],
+   "type": "object"
+  },
+  "command.received": {
+   "additionalProperties": false,
+   "properties": {
+    "command": {
+     "additionalProperties": false,
+     "description": "An owner command as the page writes it (phase2-design §12.2–12.3).",
+     "properties": {
+      "args": {
+       "type": "object"
+      },
+      "client_time": {
+       "description": "the owner's browser clock; orders the owner's own commands (§12.3), never stored as a loop time",
+       "maxLength": 40,
+       "type": "string",
+       "x-owner-clock": true
+      },
+      "expected_hash": {
+       "anyOf": [
+        {
+         "pattern": "^[0-9a-f]{64}$",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "id": {
+       "pattern": "^[A-Za-z0-9_-]{4,64}$",
+       "type": "string"
+      },
+      "nonce": {
+       "maxLength": 128,
+       "minLength": 8,
+       "type": "string"
+      },
+      "type": {
+       "enum": [
+        "mode",
+        "pause",
+        "resume",
+        "stop",
+        "set",
+        "order",
+        "order_append",
+        "run",
+        "exclude_label",
+        "include_label",
+        "approve",
+        "merge",
+        "waive",
+        "answer",
+        "retry",
+        "release",
+        "reassign",
+        "close",
+        "promote_note",
+        "dismiss_note",
+        "meter",
+        "tick_now"
+       ]
+      }
+     },
+     "required": [
+      "args",
+      "client_time",
+      "id",
+      "nonce",
+      "type"
+     ],
+     "type": "object"
+    }
+   },
+   "required": [
+    "command"
+   ],
+   "type": "object"
+  },
+  "command.rejected": {
+   "additionalProperties": false,
+   "properties": {
+    "command_id": {
+     "type": "string"
+    },
+    "reason": {
+     "maxLength": 300,
+     "type": "string"
+    }
+   },
+   "required": [
+    "command_id",
+    "reason"
+   ],
+   "type": "object"
+  },
+  "controller.alert": {
+   "additionalProperties": false,
+   "description": "a needs-you item from a tick that may not write state (self-check failed, two controllers): the holder's next tick opens it as a question",
+   "properties": {
+    "problem": {
+     "maxLength": 500,
+     "minLength": 1,
+     "type": "string"
+    },
+    "session": {
+     "anyOf": [
+      {
+       "pattern": "^session_[A-Za-z0-9]{8,64}$",
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    }
+   },
+   "required": [
+    "problem",
+    "session"
+   ],
+   "type": "object"
+  },
+  "controller.lease": {
+   "additionalProperties": false,
+   "properties": {
+    "environment": {
+     "pattern": "^env_[A-Za-z0-9]{8,64}$",
+     "type": "string"
+    },
+    "epoch": {
+     "minimum": 1,
+     "type": "integer"
+    },
+    "expires_at": {
+     "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$",
+     "type": "string",
+     "x-stamped": true
+    },
+    "granted_at": {
+     "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$",
+     "type": "string",
+     "x-stamped": true
+    },
+    "reason": {
+     "enum": [
+      "first",
+      "renew",
+      "expired",
+      "holder_gone"
+     ]
+    },
+    "session": {
+     "pattern": "^session_[A-Za-z0-9]{8,64}$",
+     "type": "string"
+    },
+    "tick_task": {
+     "pattern": "^trig_[A-Za-z0-9]{8,64}$",
+     "type": [
+      "string",
+      "null"
+     ]
+    }
+   },
+   "required": [
+    "environment",
+    "epoch",
+    "expires_at",
+    "granted_at",
+    "reason",
+    "session",
+    "tick_task"
+   ],
+   "type": "object"
+  },
+  "cost.observed": {
+   "additionalProperties": false,
+   "properties": {
+    "final": {
+     "type": "boolean"
+    },
+    "session": {
+     "pattern": "^session_[A-Za-z0-9]{8,64}$",
+     "type": "string"
+    },
+    "usd": {
+     "minimum": 0,
+     "type": "number"
+    }
+   },
+   "required": [
+    "final",
+    "session",
+    "usd"
+   ],
+   "type": "object"
+  },
+  "event.restamped": {
+   "additionalProperties": false,
+   "description": "T-TIME (0013): an event file whose time was more than 2 minutes off the controller's clock when the tick folded it; the reducer applies that event with this event's own time (the controller's) instead. written_at is the event file's own stamp, kept for the record.",
+   "properties": {
+    "event": {
+     "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$",
+     "type": "string"
+    },
+    "written_at": {
+     "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$",
+     "type": "string",
+     "x-stamped": true
+    }
+   },
+   "required": [
+    "event",
+    "written_at"
+   ],
+   "type": "object"
+  },
+  "finding.fixed": {
+   "additionalProperties": false,
+   "properties": {
+    "commit": {
+     "pattern": "^[0-9a-f]{40}$",
+     "type": "string"
+    },
+    "finding_id": {
+     "pattern": "^f-[0-9A-HJKMNP-TV-Z]{26}$",
+     "type": "string"
+    },
+    "test": {
+     "maxLength": 300,
+     "minLength": 1,
+     "type": "string"
+    }
+   },
+   "required": [
+    "commit",
+    "finding_id",
+    "test"
+   ],
+   "type": "object"
+  },
+  "finding.reopened": {
+   "additionalProperties": false,
+   "properties": {
+    "finding_id": {
+     "pattern": "^f-[0-9A-HJKMNP-TV-Z]{26}$",
+     "type": "string"
+    },
+    "reason": {
+     "maxLength": 300,
+     "type": "string"
+    }
+   },
+   "required": [
+    "finding_id",
+    "reason"
+   ],
+   "type": "object"
+  },
+  "finding.waived": {
+   "additionalProperties": false,
+   "properties": {
+    "confirmation": {
+     "pattern": "^[0-9a-f]{40}$",
+     "type": "string"
+    },
+    "finding_id": {
+     "pattern": "^f-[0-9A-HJKMNP-TV-Z]{26}$",
+     "type": "string"
+    }
+   },
+   "required": [
+    "confirmation",
+    "finding_id"
+   ],
+   "type": "object"
+  },
+  "fix.pushed": {
+   "additionalProperties": false,
+   "properties": {
+    "head": {
+     "pattern": "^[0-9a-f]{40}$",
+     "type": "string"
+    },
+    "pr": {
+     "minimum": 1,
+     "type": "integer"
+    }
+   },
+   "required": [
+    "head",
+    "pr"
+   ],
+   "type": "object"
+  },
+  "gate.failed": {
+   "additionalProperties": false,
+   "properties": {
+    "attributed": {
+     "type": "boolean"
+    },
+    "result": {
+     "additionalProperties": false,
+     "description": "gate/<head>.json in the state repo (phase2-design §9.4). finished_at is written by loopctl.",
+     "properties": {
+      "base": {
+       "pattern": "^[0-9a-f]{40}$",
+       "type": "string"
+      },
+      "command": {
+       "description": "the gate command run (from main's .agent-loop.toml)",
+       "maxLength": 500,
+       "type": "string"
+      },
+      "finished_at": {
+       "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$",
+       "type": "string",
+       "x-stamped": true
+      },
+      "gate_command_sha256": {
+       "pattern": "^[0-9a-f]{64}$",
+       "type": "string"
+      },
+      "head": {
+       "pattern": "^[0-9a-f]{40}$",
+       "type": "string"
+      },
+      "log_sha256": {
+       "pattern": "^[0-9a-f]{64}$",
+       "type": "string"
+      },
+      "result": {
+       "enum": [
+        "pass",
+        "fail"
+       ]
+      },
+      "session": {
+       "anyOf": [
+        {
+         "pattern": "^session_[A-Za-z0-9]{8,64}$",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "the gate worker's session when the controller has bound it, else null"
+      },
+      "tested": {
+       "pattern": "^[0-9a-f]{40}$",
+       "type": "string"
+      },
+      "tested_tree": {
+       "description": "the tree of T (H squashed onto base): main's tree after the merge must equal it (I3)",
+       "pattern": "^[0-9a-f]{40}$",
+       "type": "string"
+      }
+     },
+     "required": [
+      "base",
+      "finished_at",
+      "gate_command_sha256",
+      "head",
+      "log_sha256",
+      "result",
+      "session",
+      "tested"
+     ],
+     "type": "object"
+    }
+   },
+   "required": [
+    "attributed",
+    "result"
+   ],
+   "type": "object"
+  },
+  "gate.passed": {
+   "additionalProperties": false,
+   "properties": {
+    "result": {
+     "additionalProperties": false,
+     "description": "gate/<head>.json in the state repo (phase2-design §9.4). finished_at is written by loopctl.",
+     "properties": {
+      "base": {
+       "pattern": "^[0-9a-f]{40}$",
+       "type": "string"
+      },
+      "command": {
+       "description": "the gate command run (from main's .agent-loop.toml)",
+       "maxLength": 500,
+       "type": "string"
+      },
+      "finished_at": {
+       "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$",
+       "type": "string",
+       "x-stamped": true
+      },
+      "gate_command_sha256": {
+       "pattern": "^[0-9a-f]{64}$",
+       "type": "string"
+      },
+      "head": {
+       "pattern": "^[0-9a-f]{40}$",
+       "type": "string"
+      },
+      "log_sha256": {
+       "pattern": "^[0-9a-f]{64}$",
+       "type": "string"
+      },
+      "result": {
+       "enum": [
+        "pass",
+        "fail"
+       ]
+      },
+      "session": {
+       "anyOf": [
+        {
+         "pattern": "^session_[A-Za-z0-9]{8,64}$",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "the gate worker's session when the controller has bound it, else null"
+      },
+      "tested": {
+       "pattern": "^[0-9a-f]{40}$",
+       "type": "string"
+      },
+      "tested_tree": {
+       "description": "the tree of T (H squashed onto base): main's tree after the merge must equal it (I3)",
+       "pattern": "^[0-9a-f]{40}$",
+       "type": "string"
+      }
+     },
+     "required": [
+      "base",
+      "finished_at",
+      "gate_command_sha256",
+      "head",
+      "log_sha256",
+      "result",
+      "session",
+      "tested"
+     ],
+     "type": "object"
+    }
+   },
+   "required": [
+    "result"
+   ],
+   "type": "object"
+  },
+  "issue.seen": {
+   "additionalProperties": false,
+   "properties": {
+    "issue": {
+     "minimum": 1,
+     "type": "integer"
+    }
+   },
+   "required": [
+    "issue"
+   ],
+   "type": "object"
+  },
+  "lease.bound": {
+   "additionalProperties": false,
+   "properties": {
+    "session": {
+     "pattern": "^session_[A-Za-z0-9]{8,64}$",
+     "type": "string"
+    }
+   },
+   "required": [
+    "session"
+   ],
+   "type": "object"
+  },
+  "lease.expired": {
+   "additionalProperties": false,
+   "properties": {
+    "attempt": {
+     "minimum": 1,
+     "type": "integer"
+    }
+   },
+   "required": [
+    "attempt"
+   ],
+   "type": "object"
+  },
+  "lease.granted": {
+   "additionalProperties": false,
+   "properties": {
+    "attempt": {
+     "minimum": 1,
+     "type": "integer"
+    },
+    "expires_at": {
+     "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$",
+     "type": "string",
+     "x-stamped": true
+    },
+    "holder_session": {
+     "anyOf": [
+      {
+       "pattern": "^session_[A-Za-z0-9]{8,64}$",
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "kind": {
+     "enum": [
+      "fix",
+      "review",
+      "gate",
+      "triage",
+      "scan",
+      "build",
+      "reconcile",
+      "check",
+      "revert"
+     ]
+    },
+    "lease_token_sha256": {
+     "pattern": "^[0-9a-f]{64}$",
+     "type": "string"
+    }
+   },
+   "required": [
+    "attempt",
+    "expires_at",
+    "holder_session",
+    "kind",
+    "lease_token_sha256"
+   ],
+   "type": "object"
+  },
+  "lease.released": {
+   "additionalProperties": false,
+   "properties": {
+    "note": {
+     "maxLength": 300,
+     "type": "string"
+    },
+    "outcome": {
+     "enum": [
+      "done",
+      "blocked",
+      "no-progress",
+      "stopped"
+     ]
+    },
+    "reason": {
+     "enum": [
+      "finished",
+      "stopped",
+      "expired",
+      "takeover",
+      "closed"
+     ]
+    }
+   },
+   "required": [
+    "reason"
+   ],
+   "type": "object"
+  },
+  "lease.renewed": {
+   "additionalProperties": false,
+   "properties": {
+    "expires_at": {
+     "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$",
+     "type": "string",
+     "x-stamped": true
+    }
+   },
+   "required": [
+    "expires_at"
+   ],
+   "type": "object"
+  },
+  "limit.observed": {
+   "additionalProperties": false,
+   "description": "a platform rate-limit signal (get_session rate_limit_info); signals only tighten (§7.2)",
+   "properties": {
+    "resets_in_s": {
+     "maximum": 691200,
+     "minimum": 0,
+     "type": "integer"
+    },
+    "status": {
+     "enum": [
+      "allowed",
+      "allowed_warning",
+      "rejected"
+     ]
+    },
+    "window": {
+     "enum": [
+      "five_hour",
+      "seven_day"
+     ]
+    }
+   },
+   "required": [
+    "resets_in_s",
+    "status",
+    "window"
+   ],
+   "type": "object"
+  },
+  "main.checked": {
+   "additionalProperties": false,
+   "description": "the post-merge check's gate result on main's sha (§10.6)",
+   "properties": {
+    "result": {
+     "additionalProperties": false,
+     "description": "gate/<head>.json in the state repo (phase2-design §9.4). finished_at is written by loopctl.",
+     "properties": {
+      "base": {
+       "pattern": "^[0-9a-f]{40}$",
+       "type": "string"
+      },
+      "command": {
+       "description": "the gate command run (from main's .agent-loop.toml)",
+       "maxLength": 500,
+       "type": "string"
+      },
+      "finished_at": {
+       "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$",
+       "type": "string",
+       "x-stamped": true
+      },
+      "gate_command_sha256": {
+       "pattern": "^[0-9a-f]{64}$",
+       "type": "string"
+      },
+      "head": {
+       "pattern": "^[0-9a-f]{40}$",
+       "type": "string"
+      },
+      "log_sha256": {
+       "pattern": "^[0-9a-f]{64}$",
+       "type": "string"
+      },
+      "result": {
+       "enum": [
+        "pass",
+        "fail"
+       ]
+      },
+      "session": {
+       "anyOf": [
+        {
+         "pattern": "^session_[A-Za-z0-9]{8,64}$",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "the gate worker's session when the controller has bound it, else null"
+      },
+      "tested": {
+       "pattern": "^[0-9a-f]{40}$",
+       "type": "string"
+      },
+      "tested_tree": {
+       "description": "the tree of T (H squashed onto base): main's tree after the merge must equal it (I3)",
+       "pattern": "^[0-9a-f]{40}$",
+       "type": "string"
+      }
+     },
+     "required": [
+      "base",
+      "finished_at",
+      "gate_command_sha256",
+      "head",
+      "log_sha256",
+      "result",
+      "session",
+      "tested"
+     ],
+     "type": "object"
+    }
+   },
+   "required": [
+    "result"
+   ],
+   "type": "object"
+  },
+  "main.moved": {
+   "additionalProperties": false,
+   "description": "the controller saw main move: its sha is unchecked until a post-merge check (§10.6) passes on it",
+   "properties": {
+    "sha": {
+     "pattern": "^[0-9a-f]{40}$",
+     "type": "string"
+    }
+   },
+   "required": [
+    "sha"
+   ],
+   "type": "object"
+  },
+  "merge.audited": {
+   "additionalProperties": false,
+   "properties": {
+    "merged_sha": {
+     "pattern": "^[0-9a-f]{40}$",
+     "type": "string"
+    },
+    "protection_on": {
+     "type": "boolean"
+    },
+    "tree_equal": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "merged_sha",
+    "protection_on",
+    "tree_equal"
+   ],
+   "type": "object"
+  },
+  "merge.done": {
+   "additionalProperties": false,
+   "properties": {
+    "merged_sha": {
+     "pattern": "^[0-9a-f]{40}$",
+     "type": "string"
+    },
+    "merged_tree": {
+     "description": "the tree of the merged commit on main (read from GitHub)",
+     "pattern": "^[0-9a-f]{40}$",
+     "type": "string"
+    },
+    "pr": {
+     "minimum": 1,
+     "type": "integer"
+    },
+    "tested": {
+     "pattern": "^[0-9a-f]{40}$",
+     "type": "string"
+    }
+   },
+   "required": [
+    "merged_sha",
+    "pr",
+    "tested"
+   ],
+   "type": "object"
+  },
+  "merge.requested": {
+   "additionalProperties": false,
+   "properties": {
+    "prs": {
+     "items": {
+      "minimum": 1,
+      "type": "integer"
+     },
+     "maxItems": 20,
+     "minItems": 1,
+     "type": "array"
+    }
+   },
+   "required": [
+    "prs"
+   ],
+   "type": "object"
+  },
+  "pr.head": {
+   "additionalProperties": false,
+   "description": "the controller saw the PR's head move (GitHub snapshot)",
+   "properties": {
+    "head": {
+     "pattern": "^[0-9a-f]{40}$",
+     "type": "string"
+    },
+    "pr": {
+     "minimum": 1,
+     "type": "integer"
+    }
+   },
+   "required": [
+    "head",
+    "pr"
+   ],
+   "type": "object"
+  },
+  "pr.risk": {
+   "additionalProperties": false,
+   "properties": {
+    "changed": {
+     "items": {
+      "maxLength": 300,
+      "minLength": 1,
+      "type": "string"
+     },
+     "maxItems": 500,
+     "type": "array"
+    },
+    "critical": {
+     "type": "boolean"
+    },
+    "gate_files": {
+     "type": "boolean"
+    },
+    "head": {
+     "pattern": "^[0-9a-f]{40}$",
+     "type": "string"
+    },
+    "tier": {
+     "enum": [
+      "docs",
+      "normal",
+      "high"
+     ]
+    }
+   },
+   "required": [
+    "changed",
+    "critical",
+    "gate_files",
+    "head",
+    "tier"
+   ],
+   "type": "object"
+  },
+  "pr.seen": {
+   "additionalProperties": false,
+   "properties": {
+    "head": {
+     "pattern": "^[0-9a-f]{40}$",
+     "type": "string"
+    },
+    "pr": {
+     "minimum": 1,
+     "type": "integer"
+    }
+   },
+   "required": [
+    "head",
+    "pr"
+   ],
+   "type": "object"
+  },
+  "question.answered": {
+   "additionalProperties": false,
+   "properties": {
+    "command_id": {
+     "type": "string"
+    },
+    "option": {
+     "type": "string"
+    },
+    "question_id": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "command_id",
+    "option",
+    "question_id"
+   ],
+   "type": "object"
+  },
+  "question.opened": {
+   "additionalProperties": false,
+   "properties": {
+    "default_option": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "detail": {
+     "description": "optional one-line context shown with the question (code-written, never model text)",
+     "maxLength": 500,
+     "type": "string"
+    },
+    "due_at": {
+     "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$",
+     "type": "string",
+     "x-stamped": true
+    },
+    "kind": {
+     "enum": [
+      "critical",
+      "cap_reached",
+      "attempts",
+      "conflict",
+      "main_red",
+      "controller",
+      "budget",
+      "other"
+     ]
+    },
+    "options": {
+     "items": {
+      "additionalProperties": false,
+      "properties": {
+       "effect": {
+        "maxLength": 300,
+        "type": "string"
+       },
+       "id": {
+        "pattern": "^[a-z0-9_-]{1,32}$",
+        "type": "string"
+       },
+       "label": {
+        "maxLength": 120,
+        "type": "string"
+       },
+       "widens": {
+        "type": "boolean"
+       }
+      },
+      "required": [
+       "effect",
+       "id",
+       "label",
+       "widens"
+      ],
+      "type": "object"
+     },
+     "maxItems": 6,
+     "minItems": 2,
+     "type": "array"
+    },
+    "question_id": {
+     "pattern": "^q-[0-9A-HJKMNP-TV-Z]{26}$",
+     "type": "string"
+    }
+   },
+   "required": [
+    "default_option",
+    "due_at",
+    "kind",
+    "options",
+    "question_id"
+   ],
+   "type": "object"
+  },
+  "reconcile.due": {
+   "additionalProperties": false,
+   "description": "the controller schedules the daily reconcile unit reconcile-YYYYMMDD (G6, K-RECON)",
+   "properties": {
+    "day": {
+     "pattern": "^[0-9]{8}$",
+     "type": "string"
+    }
+   },
+   "required": [
+    "day"
+   ],
+   "type": "object"
+  },
+  "reconcile.reported": {
+   "additionalProperties": false,
+   "description": "the reconcile worker's report from `loopctl reconcile`: facts where the store and GitHub differ (empty: all agree), how many facts were compared, and how many GitHub changes wait for the next tick",
+   "properties": {
+    "checked": {
+     "minimum": 0,
+     "type": "integer"
+    },
+    "mismatches": {
+     "items": {
+      "additionalProperties": false,
+      "properties": {
+       "explanation": {
+        "maxLength": 500,
+        "type": "string"
+       },
+       "fact": {},
+       "github": {}
+      },
+      "required": [
+       "explanation",
+       "fact",
+       "github"
+      ],
+      "type": "object"
+     },
+     "maxItems": 500,
+     "type": "array"
+    },
+    "pending": {
+     "minimum": 0,
+     "type": "integer"
+    },
+    "total": {
+     "minimum": 0,
+     "type": "integer"
+    }
+   },
+   "required": [
+    "mismatches"
+   ],
+   "type": "object"
+  },
+  "revert.due": {
+   "additionalProperties": false,
+   "description": "main is red at `red`: a revert PR back to the last green sha `good` (§10.6)",
+   "properties": {
+    "good": {
+     "pattern": "^[0-9a-f]{40}$",
+     "type": "string"
+    },
+    "red": {
+     "pattern": "^[0-9a-f]{40}$",
+     "type": "string"
+    }
+   },
+   "required": [
+    "good",
+    "red"
+   ],
+   "type": "object"
+  },
+  "revert.pushed": {
+   "additionalProperties": false,
+   "properties": {
+    "head": {
+     "pattern": "^[0-9a-f]{40}$",
+     "type": "string"
+    },
+    "pr": {
+     "minimum": 1,
+     "type": "integer"
+    }
+   },
+   "required": [
+    "head",
+    "pr"
+   ],
+   "type": "object"
+  },
+  "review.submitted": {
+   "additionalProperties": false,
+   "properties": {
+    "findings": {
+     "items": {
+      "additionalProperties": false,
+      "description": "One review finding (phase2-design §9.2). Its route (blocking, issue, note) is computed by code.",
+      "properties": {
+       "id": {
+        "pattern": "^f-[0-9A-HJKMNP-TV-Z]{26}$",
+        "type": "string"
+       },
+       "introduced": {
+        "enum": [
+         "introduced",
+         "preexisting",
+         "regression"
+        ]
+       },
+       "line": {
+        "minimum": 1,
+        "type": [
+         "integer",
+         "null"
+        ]
+       },
+       "path": {
+        "maxLength": 300,
+        "minLength": 1,
+        "type": "string"
+       },
+       "repro": {
+        "maxLength": 2000,
+        "type": "string"
+       },
+       "severity": {
+        "enum": [
+         "critical",
+         "high",
+         "medium",
+         "low"
+        ]
+       },
+       "summary": {
+        "maxLength": 300,
+        "minLength": 1,
+        "type": "string"
+       }
+      },
+      "required": [
+       "id",
+       "introduced",
+       "line",
+       "path",
+       "repro",
+       "severity",
+       "summary"
+      ],
+      "type": "object"
+     },
+     "maxItems": 200,
+     "type": "array"
+    },
+    "head": {
+     "pattern": "^[0-9a-f]{40}$",
+     "type": "string"
+    },
+    "pr": {
+     "minimum": 1,
+     "type": "integer"
+    },
+    "round": {
+     "minimum": 1,
+     "type": "integer"
+    }
+   },
+   "required": [
+    "findings",
+    "head",
+    "pr",
+    "round"
+   ],
+   "type": "object"
+  },
+  "stop.seen": {
+   "additionalProperties": false,
+   "properties": {
+    "lines": {
+     "items": {
+      "type": "string"
+     },
+     "type": "array"
+    }
+   },
+   "required": [
+    "lines"
+   ],
+   "type": "object"
+  },
+  "tick.done": {
+   "additionalProperties": false,
+   "properties": {
+    "actions": {
+     "minimum": 0,
+     "type": "integer"
+    },
+    "config_hash": {
+     "pattern": "^[0-9a-f]{64}$",
+     "type": "string"
+    },
+    "decisions": {
+     "minimum": 0,
+     "type": "integer"
+    },
+    "tick_id": {
+     "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$",
+     "type": "string"
+    }
+   },
+   "required": [
+    "actions",
+    "config_hash",
+    "decisions",
+    "tick_id"
+   ],
+   "type": "object"
+  },
+  "triage.done": {
+   "additionalProperties": false,
+   "properties": {
+    "duplicate_of": {
+     "minimum": 1,
+     "type": [
+      "integer",
+      "null"
+     ]
+    },
+    "frozen": {
+     "type": "boolean"
+    },
+    "priority": {
+     "enum": [
+      "P0",
+      "P1",
+      "P2",
+      "P3",
+      null
+     ]
+    },
+    "verdict": {
+     "enum": [
+      "accepted",
+      "rejected",
+      "deferred",
+      "duplicate"
+     ]
+    }
+   },
+   "required": [
+    "duplicate_of",
+    "frozen",
+    "priority",
+    "verdict"
+   ],
+   "type": "object"
+  },
+  "unit.closed": {
+   "additionalProperties": false,
+   "properties": {
+    "reason": {
+     "enum": [
+      "rejected",
+      "duplicate",
+      "command",
+      "merged_elsewhere",
+      "abandoned",
+      "pr_closed",
+      "issue_closed"
+     ]
+    }
+   },
+   "required": [
+    "reason"
+   ],
+   "type": "object"
+  }
+ }
+}

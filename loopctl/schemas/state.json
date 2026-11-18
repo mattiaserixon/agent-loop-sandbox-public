@@ -1,0 +1,857 @@
+{
+ "additionalProperties": false,
+ "description": "state.json in the state repo: current state, one writer (the controller under its lease).",
+ "properties": {
+  "applied": {
+   "description": "ids of applied events that name no unit (kept 7 days by event id time)",
+   "items": {
+    "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$",
+    "type": "string"
+   },
+   "type": "array"
+  },
+  "commands": {
+   "description": "owner commands handled by ingest-commands, by id: the page's six fields plus the controller-owned fields (page/README.md)",
+   "type": "object"
+  },
+  "config_hash": {
+   "anyOf": [
+    {
+     "pattern": "^[0-9a-f]{64}$",
+     "type": "string"
+    },
+    {
+     "type": "null"
+    }
+   ]
+  },
+  "controller": {
+   "anyOf": [
+    {
+     "additionalProperties": false,
+     "properties": {
+      "environment": {
+       "pattern": "^env_[A-Za-z0-9]{8,64}$",
+       "type": "string"
+      },
+      "epoch": {
+       "minimum": 1,
+       "type": "integer"
+      },
+      "expires_at": {
+       "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$",
+       "type": "string",
+       "x-stamped": true
+      },
+      "granted_at": {
+       "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$",
+       "type": "string",
+       "x-stamped": true
+      },
+      "session": {
+       "pattern": "^session_[A-Za-z0-9]{8,64}$",
+       "type": "string"
+      },
+      "tick_task": {
+       "pattern": "^trig_[A-Za-z0-9]{8,64}$",
+       "type": [
+        "string",
+        "null"
+       ]
+      }
+     },
+     "required": [
+      "environment",
+      "epoch",
+      "expires_at",
+      "granted_at",
+      "session",
+      "tick_task"
+     ],
+     "type": "object"
+    },
+    {
+     "type": "null"
+    }
+   ]
+  },
+  "cost_samples": {
+   "additionalProperties": {
+    "items": {
+     "minimum": 0,
+     "type": "number"
+    },
+    "maxItems": 50,
+    "type": "array"
+   },
+   "type": "object"
+  },
+  "last_tick_at": {
+   "anyOf": [
+    {
+     "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$",
+     "type": "string",
+     "x-stamped": true
+    },
+    {
+     "type": "null"
+    }
+   ]
+  },
+  "main": {
+   "additionalProperties": false,
+   "properties": {
+    "green": {
+     "type": [
+      "boolean",
+      "null"
+     ]
+    },
+    "last_green": {
+     "anyOf": [
+      {
+       "pattern": "^[0-9a-f]{40}$",
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "description": "the newest main sha whose post-merge check passed"
+    },
+    "sha": {
+     "anyOf": [
+      {
+       "pattern": "^[0-9a-f]{40}$",
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    }
+   },
+   "required": [
+    "green",
+    "sha"
+   ],
+   "type": "object"
+  },
+  "overrides": {
+   "description": "runtime overrides from applied commands, one per key (the latest); the tick resolves .agent-loop.toml plus these",
+   "items": {
+    "additionalProperties": false,
+    "properties": {
+     "command": {
+      "type": "string"
+     },
+     "key": {
+      "type": "string"
+     },
+     "source": {
+      "maxLength": 200,
+      "type": "string"
+     },
+     "value": {}
+    },
+    "required": [
+     "key",
+     "value",
+     "source",
+     "command"
+    ],
+    "type": "object"
+   },
+   "type": "array"
+  },
+  "previous_controller": {
+   "anyOf": [
+    {
+     "additionalProperties": false,
+     "properties": {
+      "session": {
+       "pattern": "^session_[A-Za-z0-9]{8,64}$",
+       "type": "string"
+      },
+      "tick_task": {
+       "pattern": "^trig_[A-Za-z0-9]{8,64}$",
+       "type": [
+        "string",
+        "null"
+       ]
+      }
+     },
+     "required": [
+      "session",
+      "tick_task"
+     ],
+     "type": "object"
+    },
+    {
+     "type": "null"
+    }
+   ]
+  },
+  "questions": {
+   "type": "object"
+  },
+  "sessions": {
+   "additionalProperties": {
+    "additionalProperties": false,
+    "properties": {
+     "final": {
+      "type": "boolean"
+     },
+     "kind": {
+      "enum": [
+       "fix",
+       "review",
+       "gate",
+       "triage",
+       "scan",
+       "build",
+       "reconcile",
+       null
+      ]
+     },
+     "tier": {
+      "enum": [
+       "docs",
+       "normal",
+       "high",
+       null
+      ]
+     },
+     "unit": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "usd": {
+      "minimum": 0,
+      "type": "number"
+     }
+    },
+    "required": [
+     "final",
+     "kind",
+     "tier",
+     "unit",
+     "usd"
+    ],
+    "type": "object"
+   },
+   "type": "object"
+  },
+  "signals": {
+   "additionalProperties": false,
+   "properties": {
+    "five_hour": {
+     "additionalProperties": false,
+     "properties": {
+      "status": {
+       "enum": [
+        "allowed_warning",
+        "rejected"
+       ]
+      },
+      "until_at": {
+       "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$",
+       "type": "string",
+       "x-stamped": true
+      }
+     },
+     "required": [
+      "status",
+      "until_at"
+     ],
+     "type": "object"
+    },
+    "seven_day": {
+     "additionalProperties": false,
+     "properties": {
+      "status": {
+       "enum": [
+        "allowed_warning",
+        "rejected"
+       ]
+      },
+      "until_at": {
+       "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$",
+       "type": "string",
+       "x-stamped": true
+      }
+     },
+     "required": [
+      "status",
+      "until_at"
+     ],
+     "type": "object"
+    }
+   },
+   "type": "object"
+  },
+  "spend": {
+   "description": "cost deltas, kept 8 days",
+   "items": {
+    "additionalProperties": false,
+    "properties": {
+     "at": {
+      "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$",
+      "type": "string",
+      "x-stamped": true
+     },
+     "kind": {
+      "enum": [
+       "fix",
+       "review",
+       "gate",
+       "triage",
+       "scan",
+       "build",
+       "reconcile",
+       null
+      ]
+     },
+     "session": {
+      "pattern": "^session_[A-Za-z0-9]{8,64}$",
+      "type": "string"
+     },
+     "unit": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "usd": {
+      "type": "number"
+     }
+    },
+    "required": [
+     "at",
+     "kind",
+     "session",
+     "unit",
+     "usd"
+    ],
+    "type": "object"
+   },
+   "type": "array"
+  },
+  "stop_seen": {
+   "anyOf": [
+    {
+     "additionalProperties": false,
+     "properties": {
+      "at": {
+       "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$",
+       "type": "string",
+       "x-stamped": true
+      },
+      "lines": {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      }
+     },
+     "required": [
+      "lines",
+      "at"
+     ],
+     "type": "object"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "description": "the STOP lines the last tick saw, to restore a line removed outside a confirmed resume (§4.5)"
+  },
+  "units": {
+   "additionalProperties": {
+    "additionalProperties": false,
+    "properties": {
+     "applied": {
+      "items": {
+       "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$",
+       "type": "string"
+      },
+      "type": "array"
+     },
+     "approvals": {
+      "items": {
+       "pattern": "^[0-9a-f]{40}$",
+       "type": "string"
+      },
+      "type": "array"
+     },
+     "approved_head": {
+      "anyOf": [
+       {
+        "pattern": "^[0-9a-f]{40}$",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "attempt": {
+      "minimum": 0,
+      "type": "integer"
+     },
+     "changed": {
+      "items": {
+       "maxLength": 300,
+       "type": "string"
+      },
+      "maxItems": 500,
+      "type": "array"
+     },
+     "critical": {
+      "type": "boolean"
+     },
+     "extra_rounds": {
+      "minimum": 0,
+      "type": "integer"
+     },
+     "findings": {
+      "additionalProperties": {
+       "additionalProperties": false,
+       "properties": {
+        "fixed_commit": {
+         "anyOf": [
+          {
+           "pattern": "^[0-9a-f]{40}$",
+           "type": "string"
+          },
+          {
+           "type": "null"
+          }
+         ]
+        },
+        "head": {
+         "pattern": "^[0-9a-f]{40}$",
+         "type": "string"
+        },
+        "introduced": {
+         "enum": [
+          "introduced",
+          "preexisting",
+          "regression"
+         ]
+        },
+        "path": {
+         "maxLength": 300,
+         "type": "string"
+        },
+        "round": {
+         "minimum": 1,
+         "type": "integer"
+        },
+        "route": {
+         "enum": [
+          "blocking",
+          "issue",
+          "note"
+         ]
+        },
+        "severity": {
+         "enum": [
+          "critical",
+          "high",
+          "medium",
+          "low"
+         ]
+        },
+        "status": {
+         "enum": [
+          "open",
+          "fixed",
+          "verified",
+          "waived"
+         ]
+        },
+        "summary": {
+         "maxLength": 300,
+         "type": "string"
+        }
+       },
+       "required": [
+        "head",
+        "introduced",
+        "path",
+        "round",
+        "route",
+        "severity",
+        "status",
+        "summary"
+       ],
+       "type": "object"
+      },
+      "type": "object"
+     },
+     "gate": {
+      "anyOf": [
+       {
+        "additionalProperties": false,
+        "properties": {
+         "base": {
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+         },
+         "gate_command_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+         },
+         "head": {
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+         },
+         "log_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+         },
+         "result": {
+          "enum": [
+           "pass",
+           "fail"
+          ]
+         },
+         "tested": {
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+         },
+         "tested_tree": {
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+         }
+        },
+        "required": [
+         "base",
+         "gate_command_sha256",
+         "head",
+         "log_sha256",
+         "result",
+         "tested"
+        ],
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "gate_files": {
+      "type": "boolean"
+     },
+     "granted_in": {
+      "enum": [
+       "new",
+       "triaged",
+       "queued",
+       "building",
+       "in_review",
+       "changes",
+       "approved",
+       "gating",
+       "merged",
+       "needs_owner",
+       "closed",
+       null
+      ]
+     },
+     "handoff": {
+      "anyOf": [
+       {
+        "additionalProperties": false,
+        "properties": {
+         "at": {
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$",
+          "type": "string",
+          "x-stamped": true
+         },
+         "note": {
+          "maxLength": 300,
+          "type": "string"
+         },
+         "outcome": {
+          "enum": [
+           "done",
+           "blocked",
+           "no-progress",
+           "stopped"
+          ]
+         }
+        },
+        "required": [
+         "at",
+         "outcome"
+        ],
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "the last worker's finish: outcome and one-line note"
+     },
+     "head": {
+      "anyOf": [
+       {
+        "pattern": "^[0-9a-f]{40}$",
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "key": {
+      "pattern": "^(issue|pr|scan|build|reconcile)-[0-9]{1,8}$|^(check|revert)-[0-9a-f]{12}$",
+      "type": "string"
+     },
+     "kind": {
+      "enum": [
+       "fix",
+       "review",
+       "gate",
+       "triage",
+       "scan",
+       "build",
+       "reconcile",
+       "check",
+       "revert"
+      ]
+     },
+     "lease": {
+      "anyOf": [
+       {
+        "additionalProperties": false,
+        "properties": {
+         "attempt": {
+          "minimum": 1,
+          "type": "integer"
+         },
+         "claimant_sha256": {
+          "anyOf": [
+           {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+           },
+           {
+            "type": "null"
+           }
+          ],
+          "description": "the session that claimed the lease with its first call (0029); absent or null until then"
+         },
+         "expires_at": {
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$",
+          "type": "string",
+          "x-stamped": true
+         },
+         "granted_at": {
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$",
+          "type": "string",
+          "x-stamped": true
+         },
+         "holder_session": {
+          "anyOf": [
+           {
+            "pattern": "^session_[A-Za-z0-9]{8,64}$",
+            "type": "string"
+           },
+           {
+            "type": "null"
+           }
+          ]
+         },
+         "kind": {
+          "enum": [
+           "fix",
+           "review",
+           "gate",
+           "triage",
+           "scan",
+           "build",
+           "reconcile",
+           "check",
+           "revert"
+          ]
+         },
+         "lease_token_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+         }
+        },
+        "required": [
+         "attempt",
+         "expires_at",
+         "granted_at",
+         "holder_session",
+         "kind",
+         "lease_token_sha256"
+        ],
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "pr": {
+      "minimum": 1,
+      "type": [
+       "integer",
+       "null"
+      ]
+     },
+     "prior_state": {
+      "enum": [
+       "new",
+       "triaged",
+       "queued",
+       "building",
+       "in_review",
+       "changes",
+       "approved",
+       "gating",
+       "merged",
+       "needs_owner",
+       "closed",
+       null
+      ]
+     },
+     "priority": {
+      "enum": [
+       "P0",
+       "P1",
+       "P2",
+       "P3",
+       null
+      ]
+     },
+     "revert": {
+      "anyOf": [
+       {
+        "additionalProperties": false,
+        "properties": {
+         "good": {
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+         },
+         "red": {
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+         }
+        },
+        "required": [
+         "good",
+         "red"
+        ],
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "a revert unit: main is red at red; the PR restores good's tree"
+     },
+     "round": {
+      "minimum": 0,
+      "type": "integer"
+     },
+     "stalled": {
+      "enum": [
+       "new",
+       "triaged",
+       "queued",
+       "building",
+       "in_review",
+       "changes",
+       "approved",
+       "gating",
+       "merged",
+       "needs_owner",
+       "closed",
+       null
+      ]
+     },
+     "state": {
+      "enum": [
+       "new",
+       "triaged",
+       "queued",
+       "building",
+       "in_review",
+       "changes",
+       "approved",
+       "gating",
+       "merged",
+       "needs_owner",
+       "closed"
+      ]
+     },
+     "tier": {
+      "enum": [
+       "docs",
+       "normal",
+       "high",
+       null
+      ]
+     },
+     "verdict": {
+      "enum": [
+       "accepted",
+       "rejected",
+       "deferred",
+       "duplicate",
+       null
+      ]
+     },
+     "violation": {
+      "maxLength": 500,
+      "type": [
+       "string",
+       "null"
+      ]
+     }
+    },
+    "required": [
+     "applied",
+     "attempt",
+     "critical",
+     "head",
+     "key",
+     "kind",
+     "lease",
+     "pr",
+     "prior_state",
+     "priority",
+     "round",
+     "state",
+     "tier",
+     "verdict"
+    ],
+    "type": "object"
+   },
+   "type": "object"
+  },
+  "version": {
+   "const": 1
+  }
+ },
+ "required": [
+  "applied",
+  "config_hash",
+  "controller",
+  "last_tick_at",
+  "main",
+  "previous_controller",
+  "questions",
+  "units",
+  "version"
+ ],
+ "type": "object"
+}
