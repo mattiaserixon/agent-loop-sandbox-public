@@ -50,6 +50,9 @@ def build_parser() -> argparse.ArgumentParser:
     from loopctl import reconcile
 
     reconcile.add_arguments(sub)
+    from loopctl import compare_v4
+
+    compare_v4.add_arguments(sub)
     from loopctl import install
 
     install.add_arguments(sub.add_parser("install", help="setup scripts, the standing instruction, install.json"))
@@ -89,6 +92,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         from loopctl import reconcile
 
         return reconcile.run(parser.parse_args(argv))
+    if args.command == "compare-v4":
+        from loopctl import compare_v4
+
+        return compare_v4.run(parser.parse_args(argv))
     if args.command == "install":
         from loopctl import install
 

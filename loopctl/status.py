@@ -5,6 +5,8 @@ page/fixtures/status-busy.json).
 document out. It answers the ten needs: (1) what runs, (2) what waits for the owner, (3) for every idle slot the
 rule that holds it and the setting that would change it, (4) the queue in pick order, (5) throughput, (6) spend,
 (7) recent stops, errors and limits, (8) each unit's state and history, (9) PRs and branches, (10) the next tick.
+Beyond the ten, `decisions` (optional in the page's contract, added for M2): the last ticks' decision logs
+(decisions.py), newest first.
 """
 
 from __future__ import annotations
@@ -13,7 +15,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
-from loopctl import admission, budget, clock, leases, stop
+from loopctl import admission, budget, clock, decisions, leases, stop
 from loopctl.risk import _get
 from loopctl.schedule import candidates
 
@@ -275,6 +277,7 @@ def build(state: Mapping[str, Any], cfg: Any, *, snapshot: Mapping[str, Any] | N
         "units": shown,
         "prs": prs,
         "branches": branches,
+        "decisions": decisions.recent(events),
     }
 
 
@@ -307,6 +310,15 @@ def text(doc: Mapping[str, Any]) -> str:
     out += [f"  - {r['at']} {r['type']}: {r['text']}" for r in doc["recent"]] or ["  - nothing"]
     out.append(f"\n(8) Units: {len(doc['units'])}  (9) PRs: {len(doc['prs'])}, branches: {len(doc['branches'])}")
     out.append(f"(10) Next tick: {doc['next_tick_at'] or 'not scheduled'}")
+    for d in (doc.get("decisions") or [])[:1]:
+        counts: dict[str, int] = {}
+        for e in d["decided"]:
+            counts[e["decision"]] = counts.get(e["decision"], 0) + 1
+        summary = ", ".join(f"{n} {k.replace('_', ' ')}" for k, n in sorted(counts.items())) or "nothing"
+        out.append(f"\nDecisions at the last recorded tick ({d['at']}, mode {d['mode']}): {summary}"
+                   + (f" (+{d['omitted']} not recorded)" if d["omitted"] else ""))
+        out += [f"  - {e['unit']} {e['kind']}: {e['decision']} [{e['rule']}]" + (f" {e['why']}" if e.get("why") else "")
+                for e in d["decided"] if e["decision"] != "held"]
     return "\n".join(out) + "\n"
 
 

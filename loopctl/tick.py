@@ -25,7 +25,8 @@ Order inside a tick:
    expire leases (asking the platform about holders first), open due questions, schedule the daily reconcile.
 4. Admission (admission.plan, the §4.3 order); each grant becomes a `create_session` action with its brief. Shadow
    and off modes decide and record but print no start (T-TICK).
-5. `tick.done` with the config hash; `publish_status` when a page is installed (`install.json` `page`).
+5. `tick.done` with the config hash and the decision log (decisions.py: per unit what was started, would have been
+   started or refused, and the rule); `publish_status` when a page is installed (`install.json` `page`).
 """
 
 from __future__ import annotations
@@ -40,7 +41,7 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
-from loopctl import admission, clock, commands, leases, roles, snapshot, stop
+from loopctl import admission, clock, commands, decisions, leases, roles, snapshot, stop
 from loopctl.brief import BriefInput, render
 from loopctl.reducer import ALERT_OPTIONS, Policy, reduce
 from loopctl.risk import _get
@@ -392,9 +393,11 @@ def _holding(inp: TickInput, tick_id: str, dec: leases.ControllerDecision, sessi
     for sid, sess in sorted(s.get("sessions", {}).items()):
         if not sess["final"]:  # cumulative list-price cost of every worker not yet final (§7.1)
             _action(actions, "read_cost", {"session": sid})
-    add([make_event("tick.done", {"tick_id": tick_id, "config_hash": cfg.hash,
-                                  "actions": len(actions) + 1, "decisions": len(out.decisions)},
-                    writer="controller", epoch=epoch)])  # fmt: skip
+    done: dict[str, Any] = {"tick_id": tick_id, "config_hash": cfg.hash, "actions": len(actions) + 1,
+                            "decisions": len(out.decisions), "mode": _get(cfg, "run.mode")}  # fmt: skip
+    if out.plan is not None:  # the decision log (decisions.py): what was decided per unit and the rule that decided
+        done["decided"], done["decided_omitted"] = decisions.entries(out.plan, s, cfg, starts=out.tokens)
+    add([make_event("tick.done", done, writer="controller", epoch=epoch)])
     if install.get("page"):  # no page installed (through M2 the control issue is the channel): nothing to publish
         _action(actions, "publish_status", {"page": install["page"], "doc": "status/current", "file_path": None},
                 ack=False)  # fmt: skip

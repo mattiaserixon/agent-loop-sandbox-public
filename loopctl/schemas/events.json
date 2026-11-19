@@ -1332,9 +1332,102 @@
      "pattern": "^[0-9a-f]{64}$",
      "type": "string"
     },
+    "decided": {
+     "description": "the decision log (loopctl/decisions.py): per unit what the tick started, would have started (shadow, off) or refused and the rule; then open units it held and why. Optional: ticks before it have none",
+     "items": {
+      "additionalProperties": false,
+      "properties": {
+       "decision": {
+        "enum": [
+         "start",
+         "would_start",
+         "refused",
+         "held"
+        ]
+       },
+       "kind": {
+        "enum": [
+         "fix",
+         "review",
+         "gate",
+         "triage",
+         "scan",
+         "build",
+         "reconcile",
+         "check",
+         "revert"
+        ]
+       },
+       "pr": {
+        "minimum": 1,
+        "type": "integer"
+       },
+       "rule": {
+        "enum": [
+         "admitted",
+         "paused",
+         "stop",
+         "quiet_hours",
+         "kind",
+         "platform_limit",
+         "main_red",
+         "scope",
+         "capacity",
+         "budget_window",
+         "budget_week",
+         "round_cap",
+         "refused",
+         "brief",
+         "shadow",
+         "needs_owner",
+         "attempts",
+         "stalled",
+         "not_listed",
+         "below_min_priority",
+         "not_eligible"
+        ]
+       },
+       "setting": {
+        "maxLength": 64,
+        "type": "string"
+       },
+       "unit": {
+        "pattern": "^(issue|pr|scan|build|reconcile)-[0-9]{1,8}$|^(check|revert)-[0-9a-f]{12}$",
+        "type": "string"
+       },
+       "why": {
+        "maxLength": 160,
+        "type": "string"
+       }
+      },
+      "required": [
+       "unit",
+       "kind",
+       "decision",
+       "rule"
+      ],
+      "type": "object"
+     },
+     "maxItems": 60,
+     "type": "array"
+    },
+    "decided_omitted": {
+     "description": "entries that didn't fit in decided",
+     "minimum": 0,
+     "type": "integer"
+    },
     "decisions": {
      "minimum": 0,
      "type": "integer"
+    },
+    "mode": {
+     "description": "run.mode the tick decided under",
+     "enum": [
+      "off",
+      "shadow",
+      "steady",
+      "push"
+     ]
     },
     "tick_id": {
      "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$",

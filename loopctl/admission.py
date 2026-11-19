@@ -6,7 +6,8 @@ CAS commit with the reduced state, store.py). Every refusal names the rule and t
 it"). Budget, pauses and capacity never change a unit's state, only whether it starts now (§3.1).
 
 Rules, in the order they are checked:
-1. the mode starts sessions (`run.mode`; shadow decides and records but grants nothing);
+1. the mode starts sessions (`run.mode`; shadow decides and records but grants nothing except the daily reconcile
+   unit, which K-RECON needs during M2: build-plan §4 M2, G6; it still passes every rule below);
 2. `run.paused`; a `STOP` line for the kind or unit (decision record 0026; the predicate comes from stop.py, M0.7);
 3. quiet hours (`schedule.quiet_hours`, `schedule.night`): `stop` starts nothing, `drain` only in-flight PRs;
 4. the kind is in `work.kinds` and not in `run.paused_kinds`; a platform limit doesn't block it (budget signals);
@@ -31,6 +32,7 @@ from loopctl.risk import _get
 from loopctl.schedule import candidates, idle_listed
 
 LOOP_KINDS = ("reconcile", "check", "revert")  # the loop's own checks and repairs, not work kinds (§10.6, G6)
+SHADOW_KINDS = ("reconcile",)  # what shadow starts (G6); post-merge checks in shadow (G9, opt-in) have no setting yet
 IN_FLIGHT = ("gating", "approved", "changes", "building", "in_review")
 IDLE_OPTIONS = [
     {"id": "extend_order", "label": "Add issues to work.order", "effect": "the named issues are taken in order",
@@ -120,7 +122,7 @@ def plan(state: Mapping[str, Any], cfg: Any, *, epoch: int, snapshot: Mapping[st
             room = rooms.window if short == "budget.window" else rooms.week
             refuse(f"budget: projected ${cost:.2f} > ${max(room, 0):.2f} left in the {short.split('.')[1]}", short,
                    _get(cfg, short))  # fmt: skip
-        elif not out.starts:
+        elif not out.starts and not (mode == "shadow" and c.kind in SHADOW_KINDS):
             out.decisions.append(Decision(c.unit, c.kind, False, f"run.mode = {mode}: decides only, starts nothing",
                                           "run.mode", mode, cost))  # fmt: skip
         else:
