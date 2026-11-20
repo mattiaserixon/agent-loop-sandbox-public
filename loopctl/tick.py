@@ -124,12 +124,20 @@ class TickOutput:
 
 
 # ------------------------------------------------------------------------------------------------- self-check
-def repo_name(value: Any) -> str | None:
-    """owner/name from a repository given as a name, an URL or an object with one of them."""
+SESSION_WRAPPERS = ("ccr", "session", "data", "result")  # keys a get_session result has been seen nested under
+
+
+def repo_name(value: Any, _depth: int = 0) -> str | None:
+    """owner/name from a repository given as a name, an URL or an object with one of them (also one level nested,
+    e.g. a source `{"type": "git_repository", "git_repository": {"url": …}}`)."""
     if isinstance(value, Mapping):
         for k in ("full_name", "repo", "name", "url", "html_url", "git_url"):
             if isinstance(value.get(k), str) and (name := repo_name(value[k])):
                 return name
+        if _depth < 2:
+            for v in value.values():
+                if isinstance(v, Mapping) and (name := repo_name(v, _depth + 1)):
+                    return name
         return None
     if not isinstance(value, str):
         return None
@@ -138,14 +146,26 @@ def repo_name(value: Any) -> str | None:
 
 
 def normalise_session(raw: Mapping[str, Any]) -> dict[str, Any]:
-    """The fields of a `get_session` result the self-check needs, whatever the tool names them."""
+    """The fields of a `get_session` result the self-check needs, whatever the tool names them. A result whose
+    fields sit under one wrapper key (the platform's is `ccr`) is read from inside it; fields at the top level win."""
+    for key in SESSION_WRAPPERS:
+        inner = raw.get(key)
+        if isinstance(inner, Mapping) and not (raw.get("id") or raw.get("session_id")):
+            raw = {**inner, **{k: v for k, v in raw.items() if k != key and v not in (None, "", [], {})}}
+            break
     repos = raw.get("repositories") or raw.get("sources") or raw.get("repos") or []
+    if isinstance(repos, Mapping):
+        repos = list(repos.values())
     env = raw.get("environment_id") or raw.get("environment") or ""
     if isinstance(env, Mapping):
         env = env.get("id") or env.get("environment_id") or ""
-    return {"id": raw.get("id") or raw.get("session_id") or "", "model": raw.get("model") or "",
+    model = raw.get("model") or ""
+    if isinstance(model, Mapping):
+        model = model.get("id") or model.get("name") or ""
+    return {"id": raw.get("id") or raw.get("session_id") or "", "model": model,
             "environment_id": env, "status": raw.get("status") or "",
-            "repositories": sorted({n for r in repos if (n := repo_name(r))})}  # fmt: skip
+            "repositories": sorted({n for r in repos if (n := repo_name(r))}),
+            "raw_keys": sorted(str(k) for k in raw)[:20]}  # fmt: skip
 
 
 def self_check(obs: Mapping[str, Any], install: Mapping[str, Any] | None, cfg: Any) -> str | None:
@@ -157,7 +177,8 @@ def self_check(obs: Mapping[str, Any], install: Mapping[str, Any] | None, cfg: A
                                                  _get(cfg, "project.repo")) if r})  # fmt: skip
     problems = []
     if not obs.get("id"):
-        problems.append("get_session gave no session id")
+        keys = obs.get("raw_keys") or []
+        problems.append("get_session gave no session id" + (f" (its top-level keys: {', '.join(keys)})" if keys else ""))
     if want_model and obs.get("model") != want_model:
         problems.append(f"model is {obs.get('model') or 'unknown'}, configured {want_model}")
     if obs.get("repositories") != want_repos:
