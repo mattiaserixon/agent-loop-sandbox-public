@@ -126,7 +126,7 @@ class TickOutput:
 
 
 # ------------------------------------------------------------------------------------------------- self-check
-SESSION_WRAPPERS = ("ccr", "session", "data", "result")  # keys a get_session result has been seen nested under
+SESSION_WRAPPERS = ("ccr", "session", "trigger", "data", "result")  # keys a tool result has been seen nested under
 
 
 def repo_name(value: Any, _depth: int = 0) -> str | None:
@@ -386,7 +386,8 @@ def _holding(inp: TickInput, tick_id: str, dec: leases.ControllerDecision, sessi
                     epoch=epoch)])  # fmt: skip
     if dec.create_task:
         _action(actions, "create_trigger", {"cron_expression": TICK_CRON, "persistent_session_id": session,
-                                            "prompt": "", "name": "agent-loop tick"})  # fmt: skip
+                                            "prompt": "tick", "name": "agent-loop tick"})  # fmt: skip
+        # the platform requires a prompt (2026-11-20); `tick` is the same wake-up text workers send
     for task in dec.delete_tasks:
         _action(actions, "delete_trigger", {"trigger_id": task}, ack=False)
     # results of the previous tick's actions

@@ -91,10 +91,10 @@ for root in ${AGENT_LOOP_REPOS_ROOT:-} "$PWD" "$(dirname "$PWD")" "$HOME" /home/
     ok=""
     for repo in $VENDOR_REPOS; do repo_of "$co" "$repo" && ok=1; done
     [ -n "$ok" ] || continue
-    python3 -I "$co/loopctl/bin/loopctl" install check-vendor "$co/loopctl" --engine-ref "$ENGINE_REF" > /dev/null 2>&1 \
+    python3 -I -B "$co/loopctl/bin/loopctl" install check-vendor "$co/loopctl" --engine-ref "$ENGINE_REF" > /dev/null 2>&1 \
       || continue
     rm -rf "$ENGINE_DIR" && mkdir -p "$ENGINE_DIR" && cp -R "$co/loopctl" "$ENGINE_DIR/loopctl" || continue
-    if python3 -I "$ENGINE_DIR/loopctl/bin/loopctl" install check-vendor "$ENGINE_DIR/loopctl" \
+    if python3 -I -B "$ENGINE_DIR/loopctl/bin/loopctl" install check-vendor "$ENGINE_DIR/loopctl" \
       --engine-ref "$ENGINE_REF" > /dev/null 2>&1; then
       printf '%s\n' "$ENGINE_REF" > "$ENGINE_DIR/.engine-ref"
       exit 0
@@ -171,11 +171,15 @@ kept.append({"hooks": [{"type": "command", "command": command, "timeout": 120}]}
 hooks["PreToolUse"] = kept
 settings["hooks"] = hooks
 # The controller schedules its own hourly wake-up (create_trigger), which auto mode refuses without an allow rule;
-# the owner chose to allow it in the controller environment only (2026-11-20, decision 0030). Workers get no rule.
+# the owner chose to allow it in the controller environment only (2026-11-20, decision 0030).
 perms = settings.get("permissions") if isinstance(settings.get("permissions"), dict) else {}
 allow = [a for a in perms.get("allow") or [] if isinstance(a, str)]
-if role == "controller" and "mcp__claude-code-remote__create_trigger" not in allow:
-    allow.append("mcp__claude-code-remote__create_trigger")
+# A worker attaches the target itself (create_session takes one repository), which auto mode refuses without an allow
+# rule; the owner chose to allow add_repo for workers only (2026-11-20, decision 0030). The guard still decides what a
+# worker may do with an attached repository (pushes only to the target's branches).
+wanted = {"controller": "mcp__claude-code-remote__create_trigger", "worker": "mcp__claude-code-remote__add_repo"}
+if wanted.get(role) and wanted[role] not in allow:
+    allow.append(wanted[role])
 if allow:
     perms["allow"] = allow
     settings["permissions"] = perms
