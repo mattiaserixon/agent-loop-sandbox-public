@@ -65,6 +65,7 @@
      "finding.reopened",
      "finding.waived",
      "fix.pushed",
+     "fix.unchanged",
      "gate.failed",
      "gate.passed",
      "issue.seen",
@@ -1498,6 +1499,19 @@
    },
    "required": [
     "reason"
+   ],
+   "type": "object"
+  },
+  "fix.unchanged": {
+   "additionalProperties": false,
+   "properties": {
+    "head": {
+     "pattern": "^[0-9a-f]{40}$",
+     "type": "string"
+    }
+   },
+   "required": [
+    "head"
    ],
    "type": "object"
   }

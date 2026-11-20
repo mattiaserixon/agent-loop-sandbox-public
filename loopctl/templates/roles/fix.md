@@ -20,6 +20,8 @@ First, run exactly: `{{cmd_identify}}`
   and the gate.
 - After each push, record it: `{{cmd_pushed}}`
 - For each finding fixed: `{{cmd_fixed}}`
+- If there are no open findings and the PR's head already does the task with its tests passing (its last gate failed
+  for a reason that isn't the PR's), push nothing and record it: `{{cmd_unchanged}}`
 
 ## Feature freeze
 {{freeze}}

@@ -147,6 +147,7 @@ def commands(role: str, src: BriefInput) -> dict[str, str]:
     if role == "fix":
         out["pushed"] = f"loopctl event {u} --token {t} fix-pushed --pr <number> --head <sha>"
         out["fixed"] = f"loopctl event {u} --token {t} finding-fixed --finding <f-id> --commit <sha> --test '<test>'"
+        out["unchanged"] = f"loopctl event {u} --token {t} fix-unchanged --head <sha>"
     elif role == "review":
         head = (src.pr or {}).get("head") or "<head sha>"
         out["submit"] = f"loopctl review submit {u} --token {t} --head {head} --file /tmp/findings.json"
