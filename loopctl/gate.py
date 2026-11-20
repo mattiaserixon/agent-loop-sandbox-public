@@ -140,6 +140,16 @@ def _fetch_commit(io: Any, repo: Path, sha: str, pr: int | None) -> None:
         raise GateProblem(f"{sha[:12]} can't be fetched from the target")
 
 
+def _whole_history(io: Any, repo: Path) -> None:
+    """A shallow checkout (the platform clones one, 2026-11-20) has no merge base, so `git merge` refuses "unrelated
+    histories" and the gate failed a good PR: fetch the rest of the history first."""
+    code, out = io.git("rev-parse", "--is-shallow-repository", cwd=repo)
+    if code == 0 and out.strip() == "true":
+        code, out = io.git("fetch", "--quiet", "--unshallow", "origin", cwd=repo)
+        if code != 0:
+            raise GateProblem(f"the checkout is shallow and its history can't be fetched: {out.strip()[:200]}")
+
+
 def remote_heads(io: Any, repo: Path, main: str, pr: int | None) -> tuple[str | None, str | None]:
     """(main's sha now, the PR's head now) from `git ls-remote` of the target (GitHub's `refs/pull/<n>/head`)."""
     refs = [f"refs/heads/{main}"] + ([f"refs/pull/{pr}/head"] if pr is not None else [])
@@ -156,6 +166,7 @@ def run(io: Any, repo: Path, target: Target, *, main: str, scratch: Path, sessio
     base = _ok(io, repo, "rev-parse", "refs/loopctl/main^{commit}")
     head = target.head
     _fetch_commit(io, repo, head, target.pr)
+    _whole_history(io, repo)
     if target.kind == "check":
         base = head  # the post-merge check tests main's sha itself
     config_rev = base
@@ -176,6 +187,8 @@ def run(io: Any, repo: Path, target: Target, *, main: str, scratch: Path, sessio
             tested = head
         else:
             code, out = io.git("merge", "--squash", head, cwd=wt)
+            if code != 0 and "unrelated histories" in out:  # a checkout problem, never the PR's fault
+                raise GateProblem(f"{head[:12]} and main {base[:12]} share no history in this checkout")
             if code != 0:
                 failed_before_run = True
                 pre_log = f"[loopctl gate] {head[:12]} doesn't merge cleanly onto main {base[:12]}:\n{out}\n".encode()

@@ -1,5 +1,5 @@
 {
- "engine_ref": "ae2bcc4d05a29470651490b10ca9637d4eed3a4f",
+ "engine_ref": "88c257b7f8d4f4a4d0a5f55b4a1738ab13066a32",
  "engine_repo": "mattiaserixon/agent-loop",
  "files": {
   "__init__.py": "85822a25d724a130484377539f92e221f37ce83bcbff1f95a79ea82ffa3bf276",
@@ -18,7 +18,7 @@
   "controller_cli.py": "1524abe425245bb85c55aa0cd84d0a1e47fdcb74f203c77fe1d21bd6e33e1bab",
   "decisions.py": "fc6490d906b93f48a92f16e3b5ea19577026cdb68ef3ea456b633fecaf77fa93",
   "findings.py": "4927eab8a3d4baf8e7f56fdede17e4f906242b174f07f5cd8828b3a08a55b3e1",
-  "gate.py": "3927f41f1b6a2d571e04bddc135760a7bf6fa662949876c9df3ba38c6b66f3cc",
+  "gate.py": "6c925427720181068ea2f3bad49660b582ebd9468b254eb79fb692012fb1696d",
   "gate_io.py": "2ffc2d48e826c8752b6b074b9a8d3debfcb83fa2ea9c45398a86f9d29bea1cb5",
   "github.py": "1f260fb21c4427d1ddf07cfd044dae95ec645b339a614b3f01b652e931c568be",
   "guard.py": "6ca7a8d2d9bf6376e447af9904b21b85d9b3d8418ffd2e5c0bc0473d5d49272a",
@@ -44,7 +44,7 @@
   "stop.py": "7ee2714ed390d57c08ce8682613bd2a5a1ac45930054286878d2680da000d922",
   "store.py": "7cdbc54d413f532220184941f64bf7bac2e8e6ae486f361127a66b293df30bdd",
   "templates/freeze.md": "a95950e62174945cfb98bfb58223a744712af2f32410621cfb768557ff041aa5",
-  "templates/roles/check.md": "cf9c8620758fafecdbf3ce3ec9f0807d7bb1e881b1d5fa69a6d49965fc91d272",
+  "templates/roles/check.md": "0f51de79a7a875e84d12aea0d5b6f508f71ca8bd8833727cb190262bc50a22eb",
   "templates/roles/fix.md": "a6bc64837be90e595ad3686f111a9bb7f63e72efb28c97da8cd532395ddffc24",
   "templates/roles/focus-correctness.md": "f2d33d8b612d58568aa1ac57e455e8019e22484c3bc66602453d8fa1e03dd59c",
   "templates/roles/focus-security.md": "67ec7c4f16b7a90a463b20d35ec127e2ae8034e5cbacf150559c56fc47cbe929",
@@ -59,7 +59,7 @@
   "templates/setup/controller-instruction.txt": "b45581740273b11f515e13ecb3df0de7d8649772e42e31424098edfc9bdc78a0",
   "templates/setup/environment.sh": "ad3a84705ed3788b356099dd3d41f757f9e3d8edd6e0d315a28c7e98b8a67c4d",
   "templates/workflow/agent-loop.yml": "4a3123829c3e61cc527329cf906d7fde5deb040f4718c7c11dea1db838da72d6",
-  "tick.py": "4d5aecaa1f66a37f644a80513b495d0dc3d77d11fd143be93ec436291e33bd38",
+  "tick.py": "c08df67cb79cadd755005134ca4639343d2384eedf396be3a1a358f3e3ebaef0",
   "verdict.py": "1138b89638caa11bedce9bb2fafbc663bb94036f4a640606724e01e7d265b960",
   "verify.py": "ec4b509cc856fa1e78f97f43df6a2cc0d7ba983c95c398c96157baf52fea30ce",
   "worker.py": "25b7ec1dcfc60598a2c081fddc503424665e3c097e57f60bb8e417c92243b375"
