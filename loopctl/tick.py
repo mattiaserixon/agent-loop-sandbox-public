@@ -153,19 +153,66 @@ def normalise_session(raw: Mapping[str, Any]) -> dict[str, Any]:
         if isinstance(inner, Mapping) and not (raw.get("id") or raw.get("session_id")):
             raw = {**inner, **{k: v for k, v in raw.items() if k != key and v not in (None, "", [], {})}}
             break
-    repos = raw.get("repositories") or raw.get("sources") or raw.get("repos") or []
-    if isinstance(repos, Mapping):
-        repos = list(repos.values())
+    repos: list[Any] = []
+    for _path, val in _walk(raw, REPO_KEYS):  # every repository list, at any depth (the platform nests them)
+        repos += list(val.values()) if isinstance(val, Mapping) else val if isinstance(val, list) else [val]
     env = raw.get("environment_id") or raw.get("environment") or ""
     if isinstance(env, Mapping):
         env = env.get("id") or env.get("environment_id") or ""
-    model = raw.get("model") or ""
-    if isinstance(model, Mapping):
-        model = model.get("id") or model.get("name") or ""
+    model = ""
+    for _path, val in _walk(raw, MODEL_KEYS):  # the first model found, breadth first, top-level keys first
+        if isinstance(val, Mapping):
+            val = val.get("id") or val.get("name") or val.get("model") or ""
+        if isinstance(val, str) and val:
+            model = val
+            break
     return {"id": raw.get("id") or raw.get("session_id") or "", "model": model,
             "environment_id": env, "status": raw.get("status") or "",
             "repositories": sorted({n for r in repos if (n := repo_name(r))}),
-            "raw_keys": sorted(str(k) for k in raw)[:20]}  # fmt: skip
+            "raw_keys": sorted(str(k) for k in raw)[:20],
+            "field_paths": _paths(raw)}  # fmt: skip
+
+
+REPO_KEYS = ("repositories", "sources", "repos")
+MODEL_KEYS = ("model", "configured_model", "model_id", "model_name")
+
+
+def _walk(value: Any, keys: Sequence[str], max_depth: int = 4) -> list[tuple[str, Any]]:
+    """(path, value) of every non-empty entry whose key is in `keys`, breadth first (shallow paths first, and at one
+    depth in the order of `keys`). Lists of objects are entered too."""
+    found: list[tuple[str, Any]] = []
+    level: list[tuple[str, Any]] = [("", value)]
+    for _ in range(max_depth + 1):
+        nxt: list[tuple[str, Any]] = []
+        for path, node in level:
+            if isinstance(node, Mapping):
+                for k in keys:
+                    if node.get(k) not in (None, "", [], {}):
+                        found.append((f"{path}.{k}".lstrip("."), node[k]))
+                nxt += [(f"{path}.{k}".lstrip("."), v) for k, v in node.items()
+                        if isinstance(v, (Mapping, list)) and k not in keys]  # fmt: skip
+            elif isinstance(node, list):
+                nxt += [(f"{path}[{i}]", v) for i, v in enumerate(node[:50]) if isinstance(v, (Mapping, list))]
+        level = nxt
+    return found
+
+
+def _paths(raw: Any) -> list[str]:
+    """Paths of the fields whose names mention a model or a repository (for the self-check's message; no values)."""
+    out: list[str] = []
+    level: list[tuple[str, Any]] = [("", raw)]
+    for _ in range(5):
+        nxt: list[tuple[str, Any]] = []
+        for path, node in level:
+            items = node.items() if isinstance(node, Mapping) else enumerate(node[:3]) if isinstance(node, list) else []
+            for k, v in items:
+                p = f"{path}.{k}".lstrip(".") if isinstance(k, str) else f"{path}[{k}]"
+                if isinstance(k, str) and re.search(r"model|repo|source", k, re.IGNORECASE):
+                    out.append(p)
+                if isinstance(v, (Mapping, list)):
+                    nxt.append((p, v))
+        level = nxt
+    return out[:20]
 
 
 def self_check(obs: Mapping[str, Any], install: Mapping[str, Any] | None, cfg: Any) -> str | None:
@@ -187,6 +234,8 @@ def self_check(obs: Mapping[str, Any], install: Mapping[str, Any] | None, cfg: A
     if obs.get("environment_id") != install.get("controller_environment"):
         problems.append(f"environment is {obs.get('environment_id') or 'unknown'}, "
                         f"configured {install.get('controller_environment')}")  # fmt: skip
+    if problems and (not obs.get("model") or not obs.get("repositories")) and obs.get("field_paths"):
+        problems.append(f"fields seen: {', '.join(obs['field_paths'])}")
     return "; ".join(problems) or None
 
 
