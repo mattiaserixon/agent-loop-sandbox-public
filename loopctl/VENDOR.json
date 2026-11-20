@@ -1,5 +1,5 @@
 {
- "engine_ref": "4f3752b636eede26c9afecd666f698eed0129de6",
+ "engine_ref": "b0678233143979a0fb9269690026cca0c70d26f3",
  "engine_repo": "mattiaserixon/agent-loop",
  "files": {
   "__init__.py": "85822a25d724a130484377539f92e221f37ce83bcbff1f95a79ea82ffa3bf276",
@@ -38,7 +38,7 @@
   "schemas/finding.json": "fa643a24d83cb63bb22a148f62d616e9a7170b453b6cb1f5bee06642cb32f04a",
   "schemas/gate_result.json": "e0e8c51dab67d839958fe686950e93337ed2238325532d6ee5a3119cf6c47e95",
   "schemas/install.json": "4730ddeebe8e0c16a3d006bd446e60fe5fb37405144dd120cf9533ad48f001fc",
-  "schemas/state.json": "120bdcb4d99ce038686d26d41d779296acc659262fd3bc6dd3ae060cd9c9f851",
+  "schemas/state.json": "33fa60c3c17fa6f43bcfafe32951611c0eb6fa844f2d672fe9698dfd207d34aa",
   "snapshot.py": "a5b407d8a8d032f76811b94efb45fae9994d46584e8d625b5e1f99defda644bc",
   "status.py": "68aa1b8e555e635210e0d31692c18e4699cc2ac1d271cc7600e6360799e0d13b",
   "stop.py": "7ee2714ed390d57c08ce8682613bd2a5a1ac45930054286878d2680da000d922",

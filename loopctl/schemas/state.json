@@ -211,6 +211,8 @@
        "scan",
        "build",
        "reconcile",
+       "check",
+       "revert",
        null
       ]
      },
@@ -311,6 +313,8 @@
        "scan",
        "build",
        "reconcile",
+       "check",
+       "revert",
        null
       ]
      },
