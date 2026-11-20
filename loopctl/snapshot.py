@@ -136,7 +136,9 @@ def ingest(state: Mapping[str, Any], snap: Mapping[str, Any], *, epoch: int, cfg
             elif not pr["merged"]:
                 ev("unit.closed", {"reason": "pr_closed"}, key)  # the PR was closed on GitHub without a merge
             continue
-        moved = pr["head"] != unit["head"] and unit["state"] in ("in_review", "changes", "approved", "gating")
+        idle_build = unit["state"] == "building" and unit.get("lease") is None  # a stalled fix: no push is coming
+        moved = pr["head"] != unit["head"] and (unit["state"] in ("in_review", "changes", "approved", "gating")
+                                                or idle_build)  # fmt: skip
         if moved:
             ev("pr.head", {"pr": pr["number"], "head": pr["head"]}, key)
         if moved or (unit.get("tier") is None and pr["head"] == unit["head"]):
