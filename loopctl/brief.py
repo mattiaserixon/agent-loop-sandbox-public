@@ -365,8 +365,10 @@ def attach_text(repo: str) -> str:
         return ""
     owner, _, name = repo.partition("/")
     return (f"Before anything else, attach the repository you work on: call the `add_repo` tool with owner `{owner}`, "
-            f"repo `{name}` and access `push`, then run the clone command it returns so the checkout lands in "
-            f"`../{name}` (next to your current directory), and work there. Every step below needs it.\n\n")
+            f"repo `{name}` and access `push`. Your session starts in the state repository, where the guard refuses "
+            f"every command but `loopctl`, so run the clone command it returns as `cd .. && <clone command>`, which "
+            f"puts the checkout in `../{name}`. From then on start every shell command that isn't `loopctl` with "
+            f"`cd ../{name} && `. Every step below needs the checkout.\n\n")
 
 
 def render(role: str, src: BriefInput, read_template: Callable[[str], str] = template) -> Brief:
