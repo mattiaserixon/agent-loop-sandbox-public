@@ -3,6 +3,7 @@ the forms the briefs give (`brief.commands()`):
 
     loopctl guard identify <kind> <unit> --token T      (the claim only: `claim_main`)
     loopctl event <unit> --token T fix-pushed --pr <n> --head <sha>
+    loopctl event <unit> --token T fix-unchanged --head <sha>   (nothing to change: the approved head goes to the gate again)
     loopctl event <unit> --token T finding-fixed --finding <f-id> --commit <sha> --test '<test>'
     loopctl event <unit> --token T triage-done --verdict <v> [--priority <P0..P3>] [--duplicate-of <n>] [--frozen]
     loopctl event <unit> --token T reconcile-report --file <report.json>   (`loopctl reconcile --out`'s file)
@@ -44,7 +45,7 @@ from loopctl import claim, clock, leases
 from loopctl.store import StoreError, dumps, make_event
 
 REFUSED = 3
-EVENT_TYPES = {"fix-pushed": "fix.pushed", "finding-fixed": "finding.fixed", "triage-done": "triage.done",
+EVENT_TYPES = {"fix-pushed": "fix.pushed", "fix-unchanged": "fix.unchanged", "finding-fixed": "finding.fixed", "triage-done": "triage.done",
                "reconcile-report": "reconcile.reported", "revert-pushed": "revert.pushed"}  # fmt: skip
 OUTCOMES = ("done", "blocked", "no-progress")
 
@@ -230,6 +231,9 @@ def cmd_event(sess: Session) -> dict[str, Any]:
     if a.type in ("fix-pushed", "revert-pushed"):
         need("pr", "head")
         payload: dict[str, Any] = {"pr": a.pr, "head": a.head}
+    elif a.type == "fix-unchanged":
+        need("head")
+        payload = {"head": a.head}
     elif a.type == "finding-fixed":
         need("finding", "commit", "test")
         payload = {"finding_id": a.finding, "commit": a.commit, "test": a.test}

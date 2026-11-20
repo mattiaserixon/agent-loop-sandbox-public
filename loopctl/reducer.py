@@ -56,6 +56,7 @@ WRITERS: dict[str, set[str]] = {
     "lease.released": {"controller", "holder"},
     "lease.expired": {"controller"},
     "fix.pushed": {"worker:fix"},
+    "fix.unchanged": {"worker:fix"},
     "review.submitted": {"worker:review"},
     "finding.fixed": {"worker:fix"},
     "finding.reopened": {"worker:review"},
@@ -380,15 +381,22 @@ def _apply_unit(s: dict[str, Any], e: dict[str, Any], policy: Policy, out: Outco
         if unit["pr"] is not None and unit["pr"] != p["pr"]:
             raise Reject(f"{unit['key']} is PR {unit['pr']}, not {p['pr']}")
         unit.update(state="in_review", pr=p["pr"], head=p["head"], attempt=0, approved_head=None, gate=None)
+    elif t == "fix.unchanged":  # nothing to change: an approved head goes to the gate again, another to review
+        _need_state(unit, "building")
+        if unit["pr"] is None or p["head"] != unit["head"]:
+            raise Reject(f"{str(p['head'])[:12]} is not {unit['key']}'s PR head: push a fix instead")
+        approved = unit.get("approved_head") == unit["head"]
+        unit.update(state="approved" if approved else "in_review", attempt=0, gate=None)
     elif t == "pr.head":
         if unit["pr"] != p["pr"]:
             raise Reject(f"{unit['key']} is PR {unit['pr']}, not {p['pr']}")
         if p["head"] == unit["head"]:
             return
-        if unit["state"] not in ("in_review", "changes", "approved", "gating"):
+        idle_build = unit["state"] == "building" and unit.get("lease") is None  # a fix that stalled: no push is coming
+        if unit["state"] not in ("in_review", "changes", "approved", "gating") and not idle_build:
             raise Reject(f"{unit['key']} is {unit['state']}: its head moves only through fix.pushed")
         # New commits outside the loop: the approval and the gate result were for the old head (§9.4 (1), (4)).
-        unit.update(head=p["head"], approved_head=None, gate=None)
+        unit.update(head=p["head"], approved_head=None, gate=None, stalled=None)  # new commits are progress
         if unit["state"] in ("approved", "gating"):
             unit["state"] = "in_review"
     elif t == "pr.risk":

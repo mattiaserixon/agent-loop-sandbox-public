@@ -1,12 +1,12 @@
 {
- "engine_ref": "a47dae36a11bef07f30e4c387a33f170ab4d83ce",
+ "engine_ref": "4efef0db928b7ec64d85675e2a9cc311d64faaa0",
  "engine_repo": "mattiaserixon/agent-loop",
  "files": {
   "__init__.py": "85822a25d724a130484377539f92e221f37ce83bcbff1f95a79ea82ffa3bf276",
   "__main__.py": "565f3d723b7be9ac59585c3b6f61d1d0f9e7ad56a12c001b794512a2b5afb116",
   "admission.py": "339d64f8abbc163d624f818dffa261fd7a55f612a2e1c421f7b815fda366b646",
   "bin/loopctl": "88c9c311fc2d8775bf696e66c8c4e14aa312379d29fc76b0f9aa5d53f5965425",
-  "brief.py": "36cd0f1e5ee33db1a9e8613b0f8451662c09f732247b7c1c7a6fe84d0fabbbac",
+  "brief.py": "53e9f08d239c95393b868e33005d421665ac65c596e42a56277a1c7de7563c2d",
   "budget.py": "b69606e8d7f29333df6d7b1886093c049ba231420082d6cb436d8391c7c9898b",
   "canonical.py": "ca8d68c15eec5c0681c0f063f2fab65d404a1ccbb9db641c363219b7438d4b3e",
   "claim.py": "080b0a31db436a2f3ddf0ff3f27c93a6010f193849a296f1839bc672498b335d",
@@ -28,13 +28,13 @@
   "leases.py": "fe01c5dec201f5243e572c0432b54c0c702dd32b3fdffbebc091a05337b31a0c",
   "notes.py": "aebb800d131a98826014654787f1911776d17a1f0f02c13f58b000371fff44b7",
   "reconcile.py": "bd4ec5aadc2539f301247b3f5aeddfae8f03be9ded71850d1a5efdbb9abae25c",
-  "reducer.py": "37a8a875eee327e59fbe6a604ddf50980f781d8e991cc81688a71721df5a1a2c",
+  "reducer.py": "35513843e903c54c20a2309770cf54723c381bb391af0b073b2ef9270c5d672e",
   "risk.py": "a770b34b139eba4c888b26a7e95a462fdfe92075a99dd3c62126f87a57529bac",
   "roles.py": "d17a36d3ebd2f2f856bc9c4b26ba63ddf4626cd8e1d707269f5411a002e96968",
   "schedule.py": "b1114f616c82013907867926a37cc22ba41d726e0983c880e93590c99f436795",
   "schema.py": "910a396cf6112ee7dee5464b27cdb8f780d6b8b69b54b7ee8adffc124e51a97e",
   "schemas/command.json": "a3f01b9d875634737a3fb425780db3141e1f5a5be228bdb0a2931a646484a361",
-  "schemas/events.json": "4707c5c61ed6f8d4f22282b12dd15435335d4de7d09f3ccf153c06be54e16b74",
+  "schemas/events.json": "8081726ded3f9dc25891128864d35c951d12718157c04c794c20a0904c76af12",
   "schemas/finding.json": "fa643a24d83cb63bb22a148f62d616e9a7170b453b6cb1f5bee06642cb32f04a",
   "schemas/gate_result.json": "e0e8c51dab67d839958fe686950e93337ed2238325532d6ee5a3119cf6c47e95",
   "schemas/install.json": "4730ddeebe8e0c16a3d006bd446e60fe5fb37405144dd120cf9533ad48f001fc",
@@ -45,7 +45,7 @@
   "store.py": "7cdbc54d413f532220184941f64bf7bac2e8e6ae486f361127a66b293df30bdd",
   "templates/freeze.md": "a95950e62174945cfb98bfb58223a744712af2f32410621cfb768557ff041aa5",
   "templates/roles/check.md": "0f51de79a7a875e84d12aea0d5b6f508f71ca8bd8833727cb190262bc50a22eb",
-  "templates/roles/fix.md": "a6bc64837be90e595ad3686f111a9bb7f63e72efb28c97da8cd532395ddffc24",
+  "templates/roles/fix.md": "3d4d584d8aeb1abcf9592df378337722dfe768b0d223820013296ddd9c5ad226",
   "templates/roles/focus-correctness.md": "f2d33d8b612d58568aa1ac57e455e8019e22484c3bc66602453d8fa1e03dd59c",
   "templates/roles/focus-security.md": "67ec7c4f16b7a90a463b20d35ec127e2ae8034e5cbacf150559c56fc47cbe929",
   "templates/roles/focus-spec.md": "e632516f938709785254ec4384cc4309abff056cbb4937841264423ec08e63a1",
@@ -62,6 +62,6 @@
   "tick.py": "070a2dac936b3163c956750dd1215a6195ebc6d3bdc6f35b496f4a03e21ec963",
   "verdict.py": "1138b89638caa11bedce9bb2fafbc663bb94036f4a640606724e01e7d265b960",
   "verify.py": "ec4b509cc856fa1e78f97f43df6a2cc0d7ba983c95c398c96157baf52fea30ce",
-  "worker.py": "25b7ec1dcfc60598a2c081fddc503424665e3c097e57f60bb8e417c92243b375"
+  "worker.py": "26e87449c5fcdd1eda2c5c9d8bcfaff4cbe817d5e9a6cfd13b2ab088e4033cf2"
  }
 }
