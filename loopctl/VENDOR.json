@@ -1,5 +1,5 @@
 {
- "engine_ref": "88c257b7f8d4f4a4d0a5f55b4a1738ab13066a32",
+ "engine_ref": "a47dae36a11bef07f30e4c387a33f170ab4d83ce",
  "engine_repo": "mattiaserixon/agent-loop",
  "files": {
   "__init__.py": "85822a25d724a130484377539f92e221f37ce83bcbff1f95a79ea82ffa3bf276",
@@ -59,7 +59,7 @@
   "templates/setup/controller-instruction.txt": "b45581740273b11f515e13ecb3df0de7d8649772e42e31424098edfc9bdc78a0",
   "templates/setup/environment.sh": "ad3a84705ed3788b356099dd3d41f757f9e3d8edd6e0d315a28c7e98b8a67c4d",
   "templates/workflow/agent-loop.yml": "4a3123829c3e61cc527329cf906d7fde5deb040f4718c7c11dea1db838da72d6",
-  "tick.py": "c08df67cb79cadd755005134ca4639343d2384eedf396be3a1a358f3e3ebaef0",
+  "tick.py": "070a2dac936b3163c956750dd1215a6195ebc6d3bdc6f35b496f4a03e21ec963",
   "verdict.py": "1138b89638caa11bedce9bb2fafbc663bb94036f4a640606724e01e7d265b960",
   "verify.py": "ec4b509cc856fa1e78f97f43df6a2cc0d7ba983c95c398c96157baf52fea30ce",
   "worker.py": "25b7ec1dcfc60598a2c081fddc503424665e3c097e57f60bb8e417c92243b375"
