@@ -114,6 +114,7 @@ class BriefInput:
     slice: str = ""  # reviewer/verifier: the part of the diff
     revert: Mapping[str, str] | None = None  # revert: {red, good} main shas (§10.6)
     main: str = "main"  # revert: the target's main branch
+    attach: str = ""  # owner/name the worker attaches itself (a session starts from one repository: decision 0030)
 
     @classmethod
     def from_json(cls, data: Mapping[str, Any]) -> BriefInput:
@@ -357,6 +358,17 @@ def _cut_to(text: str, budget: int, name: str) -> str:
     return "\n".join([*keep, marker]) if keep else ""
 
 
+def attach_text(repo: str) -> str:
+    """The brief's first step when the worker must attach the target itself (decision 0030): its session starts from
+    the state repository only, because `create_session` takes one repository."""
+    if not repo:
+        return ""
+    owner, _, name = repo.partition("/")
+    return (f"Before anything else, attach the repository you work on: call the `add_repo` tool with owner `{owner}`, "
+            f"repo `{name}` and access `push`, then run the clone command it returns so the checkout lands in "
+            f"`../{name}` (next to your current directory), and work there. Every step below needs it.\n\n")
+
+
 def render(role: str, src: BriefInput, read_template: Callable[[str], str] = template) -> Brief:
     if role not in ROLES:
         raise BriefError(f"unknown role {role!r}; roles: {', '.join(ROLES)}")
@@ -396,7 +408,7 @@ def render(role: str, src: BriefInput, read_template: Callable[[str], str] = tem
         filled[s.name] = s.text
     for name, value in filled.items():
         text = text.replace("{{" + name + "}}", value)
-    brief.text = PLACEHOLDER.sub("", text).strip() + "\n"
+    brief.text = attach_text(src.attach) + PLACEHOLDER.sub("", text).strip() + "\n"
     brief.tokens = tokens(brief.text)
     return brief
 

@@ -30,14 +30,29 @@ cat > "$HOME_DIR/role.json" <<EOF
  "target": "$TARGET_REPO", "state": "$STATE_REPO", "main": "$MAIN"}
 EOF
 
-# --- 2. the installer: GitHub first, then the attached checkout of the engine repository ---------------------------
-cat > "$BIN_DIR/agent-loop-install" <<'EOF'
+# --- 2. the installer: GitHub, then the attached checkout of the engine repository, then a vendored copy -----------
+cat > "$BIN_DIR/agent-loop-install" <<EOF
 #!/bin/bash
-# Installs the pinned engine into ENGINE_DIR. Exit 0 only when ENGINE_DIR is at ENGINE_REF.
+# The repositories whose checkouts may hold a vendored copy of the engine (<checkout>/loopctl with VENDOR.json):
+# only the state and target repositories, which the owner controls (decision 0030).
+VENDOR_REPOS="$STATE_REPO $TARGET_REPO"
+EOF
+cat >> "$BIN_DIR/agent-loop-install" <<'EOF'
+# Installs the pinned engine into ENGINE_DIR. Exit 0 only when ENGINE_DIR is at ENGINE_REF: a git checkout at that
+# commit, or a vendored copy of it (marker .engine-ref, every file checked against its VENDOR.json).
 # Usage: agent-loop-install ENGINE_DIR ENGINE_REPO ENGINE_REF [SECONDS per fetch, default 60]
 set -u
 ENGINE_DIR="$1" ENGINE_REPO="$2" ENGINE_REF="$3" WAIT="${4:-60}"
-at_ref() { [ "$(git -C "$ENGINE_DIR" rev-parse HEAD 2> /dev/null)" = "$ENGINE_REF" ]; }
+at_ref() {
+  [ "$(git -C "$ENGINE_DIR" rev-parse HEAD 2> /dev/null)" = "$ENGINE_REF" ] && return 0
+  [ "$(cat "$ENGINE_DIR/.engine-ref" 2> /dev/null)" = "$ENGINE_REF" ] && [ -f "$ENGINE_DIR/loopctl/VENDOR.json" ]
+}
+repo_of() {  # 0 when checkout $1's origin is repository $2
+  local origin
+  origin=$(git -C "$1" config --get remote.origin.url 2> /dev/null) || return 1
+  case "$origin" in */"$2" | */"$2".git | */"$2"/ | *:"$2" | *:"$2".git) return 0 ;; esac
+  return 1
+}
 at_ref && exit 0
 if command -v flock > /dev/null; then  # one installer at a time (hooks of parallel tool calls run together)
   mkdir -p "$(dirname "$ENGINE_DIR")"
@@ -63,6 +78,25 @@ for root in ${AGENT_LOOP_REPOS_ROOT:-} "$PWD" "$(dirname "$PWD")" "$HOME" /home/
     git -C "$co" update-ref refs/agent-loop/pinned "$ENGINE_REF" 2> /dev/null || continue
     if fresh && git -C "$ENGINE_DIR" fetch -q "$co" refs/agent-loop/pinned \
       && git -C "$ENGINE_DIR" checkout -q --detach FETCH_HEAD && at_ref; then
+      exit 0
+    fi
+  done
+done
+# A vendored copy in a checkout of the state or target repository (a worker session starts from one repository only,
+# so the engine travels with it): copied only when every file matches its VENDOR.json and that names ENGINE_REF.
+# shellcheck disable=SC2086  # AGENT_LOOP_REPOS_ROOT may name several roots, separated by spaces
+for root in ${AGENT_LOOP_REPOS_ROOT:-} "$PWD" "$(dirname "$PWD")" "$HOME" /home/user /workspace /workspaces /repos; do
+  for co in "$root" "$root"/*; do
+    [ -f "$co/loopctl/VENDOR.json" ] && [ -d "$co/.git" ] || continue
+    ok=""
+    for repo in $VENDOR_REPOS; do repo_of "$co" "$repo" && ok=1; done
+    [ -n "$ok" ] || continue
+    python3 -I "$co/loopctl/bin/loopctl" install check-vendor "$co/loopctl" --engine-ref "$ENGINE_REF" > /dev/null 2>&1 \
+      || continue
+    rm -rf "$ENGINE_DIR" && mkdir -p "$ENGINE_DIR" && cp -R "$co/loopctl" "$ENGINE_DIR/loopctl" || continue
+    if python3 -I "$ENGINE_DIR/loopctl/bin/loopctl" install check-vendor "$ENGINE_DIR/loopctl" \
+      --engine-ref "$ENGINE_REF" > /dev/null 2>&1; then
+      printf '%s\n' "$ENGINE_REF" > "$ENGINE_DIR/.engine-ref"
       exit 0
     fi
   done
@@ -118,9 +152,9 @@ for dir in ${AGENT_LOOP_LINK_DIRS:-/usr/local/bin "$HOME/.local/bin"}; do
 done
 
 # --- 5. the PreToolUse hook in the user settings ----------------------------------------------------------------------
-python3 - "$SETTINGS" "$BIN_DIR/agent-loop-guard" <<'EOF'
+python3 - "$SETTINGS" "$BIN_DIR/agent-loop-guard" "$ROLE" <<'EOF'
 import json, os, sys
-path, command = sys.argv[1], sys.argv[2]
+path, command, role = sys.argv[1], sys.argv[2], sys.argv[3]
 try:
     with open(path, encoding="utf-8") as f:
         settings = json.load(f)
@@ -136,6 +170,15 @@ kept = [g for g in hooks.get("PreToolUse") or [] if isinstance(g, dict) and not 
 kept.append({"hooks": [{"type": "command", "command": command, "timeout": 120}]})
 hooks["PreToolUse"] = kept
 settings["hooks"] = hooks
+# The controller schedules its own hourly wake-up (create_trigger), which auto mode refuses without an allow rule;
+# the owner chose to allow it in the controller environment only (2026-11-20, decision 0030). Workers get no rule.
+perms = settings.get("permissions") if isinstance(settings.get("permissions"), dict) else {}
+allow = [a for a in perms.get("allow") or [] if isinstance(a, str)]
+if role == "controller" and "mcp__claude-code-remote__create_trigger" not in allow:
+    allow.append("mcp__claude-code-remote__create_trigger")
+if allow:
+    perms["allow"] = allow
+    settings["permissions"] = perms
 tmp = path + ".agent-loop.tmp"
 with open(tmp, "w", encoding="utf-8") as f:
     json.dump(settings, f, indent=2)

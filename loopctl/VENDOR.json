@@ -1,12 +1,12 @@
 {
- "engine_ref": "a7ef32d5ed3c396161a29922dd361c9c3e55afbc",
+ "engine_ref": "0b06a762be77cec089358cccd9db9fff2afb6965",
  "engine_repo": "mattiaserixon/agent-loop",
  "files": {
   "__init__.py": "85822a25d724a130484377539f92e221f37ce83bcbff1f95a79ea82ffa3bf276",
   "__main__.py": "565f3d723b7be9ac59585c3b6f61d1d0f9e7ad56a12c001b794512a2b5afb116",
   "admission.py": "339d64f8abbc163d624f818dffa261fd7a55f612a2e1c421f7b815fda366b646",
   "bin/loopctl": "88c9c311fc2d8775bf696e66c8c4e14aa312379d29fc76b0f9aa5d53f5965425",
-  "brief.py": "e109027b34a377ce241b835af5df13f4dcc2e526db5913858dd9b224e015b661",
+  "brief.py": "3a94376958f072e7ff86fa5d5727987e75eaad42f4d02406f93991da6a0656f0",
   "budget.py": "b69606e8d7f29333df6d7b1886093c049ba231420082d6cb436d8391c7c9898b",
   "canonical.py": "ca8d68c15eec5c0681c0f063f2fab65d404a1ccbb9db641c363219b7438d4b3e",
   "claim.py": "080b0a31db436a2f3ddf0ff3f27c93a6010f193849a296f1839bc672498b335d",
@@ -57,9 +57,9 @@
   "templates/roles/triage.md": "c9cc13c9af60e415c27dfb2e09239fed84e000e363c1f4cf76c267cae1b5ad4c",
   "templates/roles/verifier.md": "a4fd3b8958144bd855d8826d2dcf75999bf643bfb6fd6787c9d9b8ddeffe830d",
   "templates/setup/controller-instruction.txt": "b45581740273b11f515e13ecb3df0de7d8649772e42e31424098edfc9bdc78a0",
-  "templates/setup/environment.sh": "bfaf1be4c78fa364738b259a59af83a659866f07347fae8ba5f88417455b50eb",
+  "templates/setup/environment.sh": "39c92ea4930adddad7e1363e808a6b91cdd864c223d22880981d07ffedafb7e8",
   "templates/workflow/agent-loop.yml": "4a3123829c3e61cc527329cf906d7fde5deb040f4718c7c11dea1db838da72d6",
-  "tick.py": "db9ca1ae593c35da706dd849b7f7d978b1012a093378473d7a3bee6b6d8a5bbc",
+  "tick.py": "06f396d622ad795ffe39f9ee990c4376c4a61b5960c4d1cde41eaecfcfd24da2",
   "verdict.py": "1138b89638caa11bedce9bb2fafbc663bb94036f4a640606724e01e7d265b960",
   "verify.py": "ec4b509cc856fa1e78f97f43df6a2cc0d7ba983c95c398c96157baf52fea30ce",
   "worker.py": "25b7ec1dcfc60598a2c081fddc503424665e3c097e57f60bb8e417c92243b375"
