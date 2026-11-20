@@ -12,7 +12,7 @@ critical = [".agent-loop.toml", ".github/workflows/**", "loopctl/**"]
 excluded_labels = ["agent-loop-control"]
 
 [merge]
-auto = false
+auto = true
 
 [schedule]
 night = "run"
